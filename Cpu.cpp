@@ -294,8 +294,8 @@ void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector
 	{
 		if(totalTime<p[0].arrival)
 		{
-			totalTime += p[0].arrival-totalTime;
 			idleTime += p[0].arrival-totalTime;
+			totalTime += p[0].arrival-totalTime;
 		}
 		processStats pS;
 		pS.waitingTime = totalTime-p[0].arrival;
@@ -305,5 +305,4 @@ void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector
 		p.erase(p.begin());
 
 	}
-	
 }
