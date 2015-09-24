@@ -36,8 +36,8 @@ void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
 void sortProcessesByArrival(const vector<process> & prses, vector<process> & pOut);
 void sortProcessesByBurst(const vector<process> & prses, vector<process> & pOut);
-void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes);
-void fcfs(const vector<process> & prses, int & time, vector<processStats> & pStats);
+void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
+void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -47,20 +47,21 @@ int main(int argc, char *argv[])
 	readInOptions("S.dat", options);
 	vector< vector<processStats> > pStats(options.size(), vector<processStats>());
 	vector<int> totalTimes(options.size(), 0);
+	vector<int> idleTimes(options.size(), 0);
 	for(int i=0; i<options.size(); i++)
 	{
 		switch (options[i].alg) 
 		{
 			
 			case FCFS:
-				fcfs(processes, totalTimes[i], pStats[i]);
+				fcfs(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			default: 
 				break;
 		}
 		
 	}
-	printReport(options, pStats, totalTimes);
+	printReport(options, pStats, totalTimes, idleTimes);
 
 	
 }
@@ -243,45 +244,44 @@ void sortProcessesByBurst(const vector<process> & prses, vector<process> & pOut)
 }
 
 /* Function:	printReport
- *    Usage:	printReport(opts, pStats, totalTimes)
+ *    Usage:	printReport(opts, pStats, totalTimes, idleTimes);
  * -------------------------------------------
  * Prints out the results of multiple cpu scheduling option simulations.
  * - opts: contains all of the simulated cpu scheduling options
  * - pStats: a 2d vector where each row contains the processStats for each simulated cpu scheduling option
- * - totalTimes: contains the total time for each simulated cpu scheduling option
+ * - totalTimes: contains the total running time for each simulated cpu scheduling option
+ * - idleTimes: contains the cpu idle time for each simulated cpu scheduling option
  */
-void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes)
+void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
 {
 	for(int i=0; i<opts.size(); i++)
 	{
-		int total=0;
+		int totalTurnAround=0;
+		int totalWaiting=0;
 		for(int j = 0; j<pStats[i].size(); j++)
 		{
-			total += pStats[i][j].turnarountTime;
+			totalTurnAround += pStats[i][j].turnarountTime;
+			totalWaiting += pStats[i][j].waitingTime;
 		}
-		double avgTurnAroundTime = (double)total/pStats[i].size();
-		
-		total=0;
-		for(int j = 0; j<pStats[i].size(); j++)
-		{
-			total += pStats[i][j].waitingTime;
-		}
-		double avgWaitingTime = (double)total/pStats[i].size();
+		double avgTurnAroundTime = (double)totalTurnAround/pStats[i].size();
+		double avgWaitingTime = (double)totalWaiting/pStats[i].size();
+		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
-		cout << ALGORITHM[opts[i].alg] << " " << avgTurnAroundTime << " " << avgWaitingTime << endl; 
+		cout << ALGORITHM[opts[i].alg] << " " << avgTurnAroundTime << " " << avgWaitingTime << " " <<cpuUtilization << "%" << endl; 
 	}
 }
 
 /* Function:	fcfs
 				int totalTime;
-				vecotr<processStats> pStats;
- *    Usage:	fcfs(prses, totalTime, pStats
+				int idleTime
+				vector<processStats> pStats;
+ *    Usage:	fcfs(prses, totalTime, idleTime, pStats);
  * -------------------------------------------
  * Runs a simulation of the FCFS scheduling algorithm. 
  * - prses: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
-void fcfs(const vector<process> & prses, int & totalTime, vector<processStats> & pStats)
+void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	pStats.resize(0);
@@ -289,15 +289,21 @@ void fcfs(const vector<process> & prses, int & totalTime, vector<processStats> &
 	sortProcessesByArrival(prses, p);
 	
 	totalTime = 0;
+	idleTime = 0;
 	while(p.size()>0)
 	{
-		if(totalTime<p[0].arrival) totalTime += p[0].arrival-totalTime;
+		if(totalTime<p[0].arrival)
+		{
+			totalTime += p[0].arrival-totalTime;
+			idleTime += p[0].arrival-totalTime;
+		}
 		processStats pS;
 		pS.waitingTime = totalTime-p[0].arrival;
 		pS.turnarountTime = totalTime - p[0].arrival + p[0].burst;
 		pStats.push_back(pS);
 		totalTime += p[0].burst;
 		p.erase(p.begin());
+
 	}
 	
 }
