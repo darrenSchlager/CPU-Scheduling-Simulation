@@ -34,11 +34,11 @@ typedef struct {
 
 void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
-void sortProcessesByArrival(const vector<process> & ps, vector<process> & pOut);
-void sortProcessesByBurst(const vector<process> & ps, vector<process> & pOut);
+void addProcessByArrival(process & p,  vector<process> & ps);
+void addProcessByBurst(process & p,  vector<process> & ps);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
-void fcfs(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void npsjf(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
  */
 void readInProcesses(string filename, vector<process> & ps)
 {
+	ps.clear();
 	ifstream p(filename, fstream::in);
 	string line;
 	while(p.good())
@@ -112,7 +113,7 @@ void readInProcesses(string filename, vector<process> & ps)
 		for(; end<line.length() && isdigit(line[end]); end++) {}
 		pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
 		/**/
-		ps.push_back(pr);
+		addProcessByArrival(pr, ps);
 	}
 	p.close();
 }
@@ -129,6 +130,7 @@ void readInProcesses(string filename, vector<process> & ps)
  */
 void readInOptions(string filename, vector<option> & opts)
 {
+	opts.clear();
 	ifstream s(filename, fstream::in);
 	string line;
 	while(s.good())
@@ -204,7 +206,7 @@ void readInOptions(string filename, vector<option> & opts)
 void addProcessByArrival(process & p,  vector<process> & ps)
 {
 	
-	if(p.size()=0 || p.arrival >= ps[ps.size()-1].arrival )
+	if(ps.size()==0 || p.arrival >= ps[ps.size()-1].arrival )
 		ps.push_back(p);
 	else 
 	{
@@ -212,62 +214,34 @@ void addProcessByArrival(process & p,  vector<process> & ps)
 		ps.resize(ps.size()+1);
 		do
 		{
-			ps[i+1] = ps[i]
+			ps[i+1] = ps[i];
 			i--;
 		} while(i>=0 && p.arrival<ps[i].arrival);
 		ps[i+1] = p;
 	}
 }
-	
-/* Function:	sortProcessesByArrival
- *    Usage:	vector<process> p 
-				sortProcessesByArrival(ps, p);
- * -------------------------------------------
- * Returns a vector of proceeses sorted by arrival time from least to greatest
- */
-void sortProcessesByArrival(const vector<process> & ps, vector<process> & pOut)
-{
-	pOut.clear();
-	pOut.resize(ps.size());
-	pOut[0] = ps[0];
-	for(int i=1; i<ps.size(); i++)
-	{
-		for(int j=i-1; j>=0; j--)
-		{
-			if(ps[i].arrival>=pOut[j].arrival)
-			{
-				pOut[j+1] = ps[i];
-				break;
-			}
-			pOut[j+1] = pOut[j];
-			if(j==0) pOut[j] = ps[i];
-		}
-	}
-}
 
-/* Function:	sortProcessesByBurst
+/* Function:	addProcessByBurst
  *    Usage:	vector<process> p 
-				sortProcessesByBurst(ps, p);
+				addProcessByBurst(p, ps);
  * -------------------------------------------
- * Returns a vector of proceeses sorted by cpu burst time from least to greatest
+ * Adds the process in the apporpriate position in the vector, keeps it sorted by cpu burst time from least to greatest.
  */
-void sortProcessesByBurst(const vector<process> & ps, vector<process> & pOut)
+void addProcessByBurst(process & p,  vector<process> & ps)
 {
-	pOut.clear();
-	pOut.resize(ps.size());
-	pOut[0] = ps[0];
-	for(int i=1; i<ps.size(); i++)
+	
+	if(ps.size()==0 || p.burst >= ps[ps.size()-1].burst )
+		ps.push_back(p);
+	else 
 	{
-		for(int j=i-1; j>=0; j--)
+		int i = ps.size()-1;
+		ps.resize(ps.size()+1);
+		do
 		{
-			if(ps[i].burst>=pOut[j].burst)
-			{
-				pOut[j+1] = ps[i];
-				break;
-			}
-			pOut[j+1] = pOut[j];
-			if(j==0) pOut[j] = ps[i];
-		}
+			ps[i+1] = ps[i];
+			i--;
+		} while(i>=0 && p.burst<ps[i].burst);
+		ps[i+1] = p;
 	}
 }
 
@@ -309,12 +283,12 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
  * - ps: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
-void fcfs(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	pStats.resize(0);
-	vector<process> p;
-	sortProcessesByArrival(ps, p);
+	//vector<process> p;
+	//sortProcessesByArrival(ps, p);
 	
 	totalTime = 0;
 	idleTime = 0;
@@ -345,12 +319,10 @@ void fcfs(const vector<process> & ps, int & totalTime, int & idleTime, vector<pr
  * - ps: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
-void npsjf(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	pStats.resize(0);
-	vector<process> p;
-	sortProcessesByArrival(ps, p);
 	
 	totalTime = 0;
 	idleTime = 0;
@@ -362,15 +334,13 @@ void npsjf(const vector<process> & ps, int & totalTime, int & idleTime, vector<p
 			totalTime += p[0].arrival-totalTime;
 		}
 		
-		vector<process> shortList;
+		vector<process> ready;
 		int arrive = p[0].arrival;
 		do
 		{
-			shortList.push_back(p[0]);
+			addProcessByBurst(p[0], ready);
 			p.erase(p.begin());
 		} while(p.size()>0 && p[0].arrival==arrive);
-		vector<process> ready;
-		sortProcessesByBurst(shortList, ready);
 		while(ready.size()>0)
 		{
 			processStats pS;
