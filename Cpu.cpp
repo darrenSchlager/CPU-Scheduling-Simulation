@@ -194,6 +194,30 @@ void readInOptions(string filename, vector<option> & opts)
 	}
 	s.close();
 }
+
+/* Function:	addProcessByArrival
+ *    Usage:	vector<process> p 
+				addProcessByArrival(p, ps);
+ * -------------------------------------------
+ * Adds the process in the apporpriate position in the vector, keeps it sorted by arrival time from least to greatest.
+ */
+void addProcessByArrival(process & p,  vector<process> & ps)
+{
+	
+	if(p.size()=0 || p.arrival >= ps[ps.size()-1].arrival )
+		ps.push_back(p);
+	else 
+	{
+		int i = ps.size()-1;
+		ps.resize(ps.size()+1);
+		do
+		{
+			ps[i+1] = ps[i]
+			i--;
+		} while(i>=0 && p.arrival<ps[i].arrival);
+		ps[i+1] = p;
+	}
+}
 	
 /* Function:	sortProcessesByArrival
  *    Usage:	vector<process> p 
