@@ -181,17 +181,18 @@ void readInOptions(string filename, vector<option> & opts)
 			opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 			/**/
 		}
+		/* if nothing come next, save the default integer pair*/
 		else if(end>=line.length())
 		{
 			opt.slice = 0;
 			opt.switchTime = 0;
 		}
+		/**/
 		else
 		{
 			cerr << "ERROR-- readInOptions: S.dat is not formatted correctly." << endl;
 			exit(EXIT_FAILURE);
 		}
-		/**/
 		opts.push_back(opt);
 	}
 	s.close();
@@ -286,9 +287,6 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
-	pStats.resize(0);
-	//vector<process> p;
-	//sortProcessesByArrival(ps, p);
 	
 	totalTime = 0;
 	idleTime = 0;
@@ -322,7 +320,6 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
-	pStats.resize(0);
 	
 	totalTime = 0;
 	idleTime = 0;
@@ -341,6 +338,7 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 			addProcessByBurst(p[0], ready);
 			p.erase(p.begin());
 		} while(p.size()>0 && p[0].arrival==arrive);
+		
 		while(ready.size()>0)
 		{
 			processStats pS;
