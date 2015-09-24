@@ -38,6 +38,7 @@ void sortProcessesByArrival(const vector<process> & prses, vector<process> & pOu
 void sortProcessesByBurst(const vector<process> & prses, vector<process> & pOut);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void npsjf(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -55,6 +56,9 @@ int main(int argc, char *argv[])
 			
 			case FCFS:
 				fcfs(processes, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case NPSJF:
+				npsjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			default: 
 				break;
@@ -304,5 +308,53 @@ void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector
 		totalTime += p[0].burst;
 		p.erase(p.begin());
 
+	}
+}
+
+/* Function:	npsjf
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	npsjf(prses, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the NPSJF scheduling algorithm. 
+ * - prses: contains the processes to schedule and execute
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void npsjf(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	pStats.resize(0);
+	vector<process> p;
+	sortProcessesByArrival(prses, p);
+	
+	totalTime = 0;
+	idleTime = 0;
+	while(p.size()>0)
+	{
+		if(totalTime<p[0].arrival)
+		{
+			idleTime += p[0].arrival-totalTime;
+			totalTime += p[0].arrival-totalTime;
+		}
+		
+		vector<process> shortList;
+		int arrive = p[0].arrival;
+		do
+		{
+			shortList.push_back(p[0]);
+			p.erase(p.begin());
+		} while(p.size()>0 && p[0].arrival==arrive);
+		vector<process> ready;
+		sortProcessesByBurst(shortList, ready);
+		while(ready.size()>0)
+		{
+			processStats pS;
+			pS.waitingTime = totalTime-ready[0].arrival;
+			pS.turnarountTime = totalTime - ready[0].arrival + ready[0].burst;
+			pStats.push_back(pS);
+			totalTime += ready[0].burst;
+			ready.erase(ready.begin());
+		}
 	}
 }
