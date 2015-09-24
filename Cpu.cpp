@@ -34,11 +34,11 @@ typedef struct {
 
 void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
-void sortProcessesByArrival(const vector<process> & prses, vector<process> & pOut);
-void sortProcessesByBurst(const vector<process> & prses, vector<process> & pOut);
+void sortProcessesByArrival(const vector<process> & ps, vector<process> & pOut);
+void sortProcessesByBurst(const vector<process> & ps, vector<process> & pOut);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
-void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void npsjf(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void fcfs(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void npsjf(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -71,16 +71,16 @@ int main(int argc, char *argv[])
 }
 
 /* Function:	readInProcesses
- *    Usage:	vector<process> prses;
-				readInProcess("P.dat", prses);
+ *    Usage:	vector<process> ps;
+				readInProcess("P.dat", ps);
  * -------------------------------------------
- * Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. prses).
+ * Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. ps).
  * Each line of the file must contain two numbers separated by a space:
  * 		- The first number is the arrival time (in milliseconds),
  *		- The second number is the amount of time the process requires to complete (in milliseconds)
  *		eg. "30 2000"
  */
-void readInProcesses(string filename, vector<process> & prses)
+void readInProcesses(string filename, vector<process> & ps)
 {
 	ifstream p(filename, fstream::in);
 	string line;
@@ -112,7 +112,7 @@ void readInProcesses(string filename, vector<process> & prses)
 		for(; end<line.length() && isdigit(line[end]); end++) {}
 		pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
 		/**/
-		prses.push_back(pr);
+		ps.push_back(pr);
 	}
 	p.close();
 }
@@ -197,52 +197,52 @@ void readInOptions(string filename, vector<option> & opts)
 	
 /* Function:	sortProcessesByArrival
  *    Usage:	vector<process> p 
-				sortProcessesByArrival(prses, p);
+				sortProcessesByArrival(ps, p);
  * -------------------------------------------
  * Returns a vector of proceeses sorted by arrival time from least to greatest
  */
-void sortProcessesByArrival(const vector<process> & prses, vector<process> & pOut)
+void sortProcessesByArrival(const vector<process> & ps, vector<process> & pOut)
 {
 	pOut.clear();
-	pOut.resize(prses.size());
-	pOut[0] = prses[0];
-	for(int i=1; i<prses.size(); i++)
+	pOut.resize(ps.size());
+	pOut[0] = ps[0];
+	for(int i=1; i<ps.size(); i++)
 	{
 		for(int j=i-1; j>=0; j--)
 		{
-			if(prses[i].arrival>=pOut[j].arrival)
+			if(ps[i].arrival>=pOut[j].arrival)
 			{
-				pOut[j+1] = prses[i];
+				pOut[j+1] = ps[i];
 				break;
 			}
 			pOut[j+1] = pOut[j];
-			if(j==0) pOut[j] = prses[i];
+			if(j==0) pOut[j] = ps[i];
 		}
 	}
 }
 
 /* Function:	sortProcessesByBurst
  *    Usage:	vector<process> p 
-				sortProcessesByBurst(prses, p);
+				sortProcessesByBurst(ps, p);
  * -------------------------------------------
  * Returns a vector of proceeses sorted by cpu burst time from least to greatest
  */
-void sortProcessesByBurst(const vector<process> & prses, vector<process> & pOut)
+void sortProcessesByBurst(const vector<process> & ps, vector<process> & pOut)
 {
 	pOut.clear();
-	pOut.resize(prses.size());
-	pOut[0] = prses[0];
-	for(int i=1; i<prses.size(); i++)
+	pOut.resize(ps.size());
+	pOut[0] = ps[0];
+	for(int i=1; i<ps.size(); i++)
 	{
 		for(int j=i-1; j>=0; j--)
 		{
-			if(prses[i].burst>=pOut[j].burst)
+			if(ps[i].burst>=pOut[j].burst)
 			{
-				pOut[j+1] = prses[i];
+				pOut[j+1] = ps[i];
 				break;
 			}
 			pOut[j+1] = pOut[j];
-			if(j==0) pOut[j] = prses[i];
+			if(j==0) pOut[j] = ps[i];
 		}
 	}
 }
@@ -279,18 +279,18 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 				int totalTime;
 				int idleTime
 				vector<processStats> pStats;
- *    Usage:	fcfs(prses, totalTime, idleTime, pStats);
+ *    Usage:	fcfs(ps, totalTime, idleTime, pStats);
  * -------------------------------------------
  * Runs a simulation of the FCFS scheduling algorithm. 
- * - prses: contains the processes to schedule and execute
+ * - ps: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
-void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void fcfs(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	pStats.resize(0);
 	vector<process> p;
-	sortProcessesByArrival(prses, p);
+	sortProcessesByArrival(ps, p);
 	
 	totalTime = 0;
 	idleTime = 0;
@@ -315,18 +315,18 @@ void fcfs(const vector<process> & prses, int & totalTime, int & idleTime, vector
 				int totalTime;
 				int idleTime;
 				vector<processStats> pStats;
- *    Usage:	npsjf(prses, totalTime, idleTime, pStats);
+ *    Usage:	npsjf(ps, totalTime, idleTime, pStats);
  * -------------------------------------------
  * Runs a simulation of the NPSJF scheduling algorithm. 
- * - prses: contains the processes to schedule and execute
+ * - ps: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
-void npsjf(const vector<process> & prses, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void npsjf(const vector<process> & ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	pStats.resize(0);
 	vector<process> p;
-	sortProcessesByArrival(prses, p);
+	sortProcessesByArrival(ps, p);
 	
 	totalTime = 0;
 	idleTime = 0;
