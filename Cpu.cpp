@@ -88,32 +88,35 @@ void readInProcesses(string filename, vector<process> & ps)
 	while(p.good())
 	{
 		getline(p, line);
-		/* if a number doesnt come next, error */
-		if(!isdigit(line[0])) 
+		if(line.length()>0)
 		{
-			cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
-			exit(EXIT_FAILURE);
+			/* if a number doesnt come next, error */
+			if(!isdigit(line[0])) 
+			{
+				cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			process pr;
+			/* save the first number */
+			int end;
+			for(end=0; end<line.length() && isdigit(line[end]); end++) {}
+			pr.arrival = stoi(line.substr(0,end));
+			/**/
+			/* if a number doesnt come next, error */
+			if(!isdigit(line[++end])) //skip over the space
+			{
+				cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			/* save the second number */
+			int firstDigit = end;
+			for(; end<line.length() && isdigit(line[end]); end++) {}
+			pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
+			/**/
+			addProcessByArrival(pr, ps);
 		}
-		/**/
-		process pr;
-		/* save the first number */
-		int end;
-		for(end=0; end<line.length() && isdigit(line[end]); end++) {}
-		pr.arrival = stoi(line.substr(0,end));
-		/**/
-		/* if a number doesnt come next, error */
-		if(!isdigit(line[++end])) //skip over the space
-		{
-			cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
-			exit(EXIT_FAILURE);
-		}
-		/**/
-		/* save the second number */
-		int firstDigit = end;
-		for(; end<line.length() && isdigit(line[end]); end++) {}
-		pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
-		/**/
-		addProcessByArrival(pr, ps);
 	}
 	p.close();
 }
@@ -136,64 +139,68 @@ void readInOptions(string filename, vector<option> & opts)
 	while(s.good())
 	{
 		getline(s, line);
-		/* if a letter doesnt come next, error */
-		if(!isalpha(line[0]))
+		if(line.length()>0)
 		{
-			cerr << "ERROR-- readInOptions: S.dat is not formatted correctly." << endl;
-			exit(EXIT_FAILURE);
-		}
-		/**/
-		option opt;
-		/* save the option */
-		int end;
-		for(end=0; end<line.length() && isalpha(line[end]); end++) {}
-		string prospect = line.substr(0,end);
-		for(int i=0; i<NUM_ALGORITHMS; i++)
-		{
-			if(prospect==ALGORITHM[i]) opt.alg = (algorithm)i;
-		}
-		/**/
-		/* if a dash comes next, read in the integer pair*/
-		if(end<line.length() && line[end] == '-')
-		{
-			/* if a number doesnt come next, error */
-			if(!isdigit(line[++end]))
+			/* if a letter doesnt come next, error */
+			if(!isalpha(line[0]))
 			{
-				cerr << "ERROR-- readInOptions: S.dat is not formatted correctly." << endl;
+				cerr << "ERROR-- readInOptions: S.dat - Each line MUST start with a letter." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
-			/* save the first number */
-			int firstDigit = end;
-			for(; end<line.length() && isdigit(line[end]); end++) {}
-			opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
-			/**/
-			/* if a number doesnt come next, error */
-			if(!isdigit(line[++end]))
+			
+			option opt;
+			/* save the option */
+			int end;
+			for(end=0; end<line.length() && isalpha(line[end]); end++) {}
+			string prospect = line.substr(0,end);
+			for(int i=0; i<NUM_ALGORITHMS; i++)
 			{
-				cerr << "ERROR-- readInOptions: S.dat is not formatted correctly." << endl;
-				exit(EXIT_FAILURE);
+				if(prospect==ALGORITHM[i]) opt.alg = (algorithm)i;
 			}
 			/**/
-			/* save the second number */
-			firstDigit = end;
-			for(; end<line.length() && isdigit(line[end]); end++) {}
-			opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+			/* if a dash comes next, read in the integer pair*/
+			if(end<line.length() && line[end] == '-')
+			{
+				/* if a number doesnt come next, error */
+				if(!isdigit(line[++end]))
+				{
+					cerr << "ERROR-- readInOptions: S.dat - Each dash MUST be followed by a number." << endl;
+					exit(EXIT_FAILURE);
+				}
+				/**/
+				/* save the first number */
+				int firstDigit = end;
+				for(; end<line.length() && isdigit(line[end]); end++) {}
+				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
+				/**/
+				/* if a number doesnt come next, error */
+				if(!isdigit(line[++end]))
+				{
+					cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+					exit(EXIT_FAILURE);
+				}
+				/**/
+				/* save the second number */
+				firstDigit = end;
+				for(; end<line.length() && isdigit(line[end]); end++) {}
+				opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+				/**/
+			}
+			/* if nothing come next, save the default integer pair*/
+			else if(end>=line.length() || !isprint(line[end]))
+			{
+				opt.slice = 0;
+				opt.switchTime = 0;
+			}
 			/**/
+			else
+			{
+				cerr << "ERROR-- readInOptions: S.dat - Ensure that each line ONLY contains a single entry." << endl;
+				exit(EXIT_FAILURE);
+			}
+			opts.push_back(opt);
 		}
-		/* if nothing come next, save the default integer pair*/
-		else if(end>=line.length())
-		{
-			opt.slice = 0;
-			opt.switchTime = 0;
-		}
-		/**/
-		else
-		{
-			cerr << "ERROR-- readInOptions: S.dat is not formatted correctly." << endl;
-			exit(EXIT_FAILURE);
-		}
-		opts.push_back(opt);
 	}
 	s.close();
 }
