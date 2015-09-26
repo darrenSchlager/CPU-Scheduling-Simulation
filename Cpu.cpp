@@ -100,7 +100,7 @@ void readInProcesses(string filename, vector<process> & ps)
 	while(p.good())
 	{
 		getline(p, line);
-		if(line.length()>0)
+		if(line.length()>0 && isprint(line[0]))
 		{
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[0])) 
@@ -151,7 +151,7 @@ void readInOptions(string filename, vector<option> & opts)
 	while(s.good())
 	{
 		getline(s, line);
-		if(line.length()>0)
+		if(line.length()>0 && isprint(line[0]))
 		{
 			/* if a letter doesnt come next, error */
 			if(!isalpha(line[0]))
