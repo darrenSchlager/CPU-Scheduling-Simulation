@@ -21,8 +21,8 @@ typedef struct {
 
 //process stats
 typedef struct {
-	int waitingTime;
-	int turnarountTime;
+	int waiting;
+	int turnAround;
 } processStats;
 
 //process block
@@ -305,14 +305,14 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		int totalWaiting=0;
 		for(int j = 0; j<pStats[i].size(); j++)
 		{
-			totalTurnAround += pStats[i][j].turnarountTime;
-			totalWaiting += pStats[i][j].waitingTime;
+			totalTurnAround += pStats[i][j].turnAround;
+			totalWaiting += pStats[i][j].waiting;
 		}
-		double avgTurnAroundTime = (double)totalTurnAround/pStats[i].size();
-		double avgWaitingTime = (double)totalWaiting/pStats[i].size();
+		double avgTurnAround = (double)totalTurnAround/pStats[i].size();
+		double avgWaiting = (double)totalWaiting/pStats[i].size();
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
-		cout << ALGORITHM[opts[i].alg] << " " << avgTurnAroundTime << " " << avgWaitingTime << " " <<cpuUtilization << "%" << endl; 
+		cout << ALGORITHM[opts[i].alg] << " " << avgTurnAround << " " << avgWaiting << " " <<cpuUtilization << "%" << endl; 
 	}
 }
 
@@ -340,8 +340,8 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 			totalTime += p[0].arrival-totalTime;
 		}
 		processStats pS;
-		pS.waitingTime = totalTime-p[0].arrival;
-		pS.turnarountTime = totalTime - p[0].arrival + p[0].burst;
+		pS.waiting = totalTime-p[0].arrival;
+		pS.turnAround = totalTime - p[0].arrival + p[0].burst;
 		pStats.push_back(pS);
 		totalTime += p[0].burst;
 		p.erase(p.begin());
@@ -384,8 +384,8 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 		while(ready.size()>0)
 		{
 			processStats pS;
-			pS.waitingTime = totalTime-ready[0].arrival;
-			pS.turnarountTime = totalTime - ready[0].arrival + ready[0].burst;
+			pS.waiting = totalTime-ready[0].arrival;
+			pS.turnAround = totalTime - ready[0].arrival + ready[0].burst;
 			pStats.push_back(pS);
 			totalTime += ready[0].burst;
 			ready.erase(ready.begin());
@@ -432,11 +432,11 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 			}
 			for(int i=1; i<ready.size(); i++)
 			{
-				ready[i].s.waitingTime++;
-				ready[i].s.turnarountTime++;
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
 			}
 			ready[0].p.burst--;
-			ready[0].s.turnarountTime++;
+			ready[0].s.turnAround++;
 			if(ready[0].p.burst == 0)
 			{
 				pStats.push_back(ready[0].s);
