@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -299,6 +300,12 @@ void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs)
  */
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
 {
+	int w = 13;
+	cout << left;
+	cout << setw(w) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
+	cout << setw(w) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
+	cout << setw(w) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
+	cout << "==================================================" << endl;
 	for(int i=0; i<opts.size(); i++)
 	{
 		int totalTurnAround=0;
@@ -312,7 +319,9 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		double avgWaiting = (double)totalWaiting/pStats[i].size();
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
-		cout << ALGORITHM[opts[i].alg] << " " << avgTurnAround << " " << avgWaiting << " " <<cpuUtilization << "%" << endl; 
+		string scheduler = ALGORITHM[opts[i].alg];
+		if(opts[i].alg == RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		cout << setw(w) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 	}
 }
 
