@@ -365,31 +365,49 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 	
 	totalTime = 0;
 	idleTime = 0;
-	while(p.size()>0)
+	vector<processBlock> ready;
+	processBlock running;
+	processBlock *runningPtr = NULL;
+	while(p.size()+ready.size()>0 || runningPtr!=NULL)
 	{
-		if(totalTime<p[0].arrival)
+		if(runningPtr==NULL && ready.size()==0 && totalTime<p[0].arrival)
 		{
-			idleTime += p[0].arrival-totalTime;
-			totalTime += p[0].arrival-totalTime;
+			idleTime++;
 		}
-		
-		vector<process> ready;
-		int arrive = p[0].arrival;
-		do
+		else
 		{
-			addProcessByBurst(p[0], ready);
-			p.erase(p.begin());
-		} while(p.size()>0 && p[0].arrival==arrive);
-		
-		while(ready.size()>0)
-		{
-			processStats pS;
-			pS.waiting = totalTime-ready[0].arrival;
-			pS.turnAround = totalTime - ready[0].arrival + ready[0].burst;
-			pStats.push_back(pS);
-			totalTime += ready[0].burst;
-			ready.erase(ready.begin());
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					addProcessBlockByBurst(b, ready);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(runningPtr==NULL)
+			{
+				running = ready[0];
+				runningPtr = &running;
+				ready.erase(ready.begin());
+			}
+			for(int i=0; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			running.p.burst--;
+			running.s.turnAround++;
+			if(running.p.burst==0)
+			{
+				pStats.push_back(running.s);
+				runningPtr = NULL;
+			}
 		}
+		totalTime++;
 	}
 }
 
@@ -410,7 +428,7 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	totalTime = 0;
 	idleTime = 0;
 	vector<processBlock> ready;
-	while(p.size()>0 || ready.size()>0)
+	while(p.size()+ready.size()>0)
 	{
 		if(ready.size()==0 && totalTime<p[0].arrival)
 		{
