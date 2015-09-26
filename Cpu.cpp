@@ -19,18 +19,24 @@ typedef struct {
 	int burst;			//cpu burst length
 } process;
 
+//process stats
+typedef struct {
+	int waitingTime;
+	int turnarountTime;
+} processStats;
+
+//process block
+typedef struct {
+	process p;
+	processStats s;
+} processBlock;
+
 //cpu scheduling options
 typedef struct {
 	algorithm alg;
 	int slice;			//length of time slice
 	int switchTime;		//time it takes to perform a contet switch
 } option;
-
-//process stats
-typedef struct {
-	int waitingTime;
-	int turnarountTime;
-} processStats;
 
 void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
