@@ -105,7 +105,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[0])) 
 			{
-				cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
+				cerr << "ERROR-- readInProcesses: P.dat - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -118,7 +118,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[++end])) //skip over the space
 			{
-				cerr << "ERROR-- readInProcesses: P.dat is not formatted correctly." << endl;
+				cerr << "ERROR-- readInProcesses: P.dat - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
