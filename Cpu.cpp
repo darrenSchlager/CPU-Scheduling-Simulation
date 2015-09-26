@@ -46,6 +46,7 @@ void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -63,6 +64,9 @@ int main(int argc, char *argv[])
 			
 			case FCFS:
 				fcfs(processes, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case PSJF:
+				psjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			case NPSJF:
 				npsjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
@@ -386,5 +390,59 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 			totalTime += ready[0].burst;
 			ready.erase(ready.begin());
 		}
+	}
+}
+
+/* Function:	psjf
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	psjf(ps, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the PSJF scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	
+	totalTime = 0;
+	idleTime = 0;
+	vector<processBlock> ready;
+	while(p.size()>0 || ready.size()>0)
+	{
+		if(ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					addProcessBlockByBurst(b, ready);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			for(int i=1; i<ready.size(); i++)
+			{
+				ready[i].s.waitingTime++;
+				ready[i].s.turnarountTime++;
+			}
+			ready[0].p.burst--;
+			ready[0].s.turnarountTime++;
+			if(ready[0].p.burst == 0)
+			{
+				pStats.push_back(ready[0].s);
+				ready.erase(ready.begin());
+			}
+		}		
+		totalTime++;
 	}
 }
