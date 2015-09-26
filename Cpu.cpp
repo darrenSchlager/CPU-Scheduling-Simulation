@@ -168,7 +168,16 @@ void readInOptions(string filename, vector<option> & opts)
 			string prospect = line.substr(0,end);
 			for(int i=0; i<NUM_ALGORITHMS; i++)
 			{
-				if(prospect==ALGORITHM[i]) opt.alg = (algorithm)i;
+				if(prospect==ALGORITHM[i]) 
+				{
+					opt.alg = (algorithm)i;
+					break;
+				}
+				else if(i==NUM_ALGORITHMS-1)
+				{
+					cerr << "ERROR-- readInOptions: S.dat - '"<< prospect << "' is not supported." << endl;
+					exit(EXIT_FAILURE);
+				}
 			}
 			/**/
 			/* if a dash comes next, read in the integer pair*/
