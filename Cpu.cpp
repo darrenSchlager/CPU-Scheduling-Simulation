@@ -42,6 +42,7 @@ void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
 void addProcessByArrival(process & p,  vector<process> & ps);
 void addProcessByBurst(process & p,  vector<process> & ps);
+void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
@@ -256,6 +257,30 @@ void addProcessByBurst(process & p,  vector<process> & ps)
 			i--;
 		} while(i>=0 && p.burst<ps[i].burst);
 		ps[i+1] = p;
+	}
+}
+
+/* Function:	addProcessBlockByBurst
+ *    Usage:	vector<processBlock> p 
+				addProcessBlockByBurst(b, bs);
+ * -------------------------------------------
+ * Adds the processBlock in the apporpriate position in the vector, keeps it sorted by the processescpu burst time from least to greatest.
+ */
+void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs)
+{
+	
+	if(bs.size()==0 || b.p.burst >= bs[bs.size()-1].p.burst )
+		bs.push_back(b);
+	else 
+	{
+		int i = bs.size()-1;
+		bs.resize(bs.size()+1);
+		do
+		{
+			bs[i+1] = bs[i];
+			i--;
+		} while(i>=0 && b.p.burst<bs[i].p.burst);
+		bs[i+1] = b;
 	}
 }
 
