@@ -324,20 +324,41 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	pStats.clear();
 	totalTime = 0;
 	idleTime = 0;
-	while(p.size()>0)
+	vector<processBlock> ready;
+	while(p.size()+ready.size()>0)
 	{
-		if(totalTime<p[0].arrival)
+		if(ready.size()==0 && totalTime<p[0].arrival)
 		{
-			idleTime += p[0].arrival-totalTime;
-			totalTime += p[0].arrival-totalTime;
+			idleTime++;
 		}
-		processStats pS;
-		pS.waiting = totalTime-p[0].arrival;
-		pS.turnAround = totalTime - p[0].arrival + p[0].burst;
-		pStats.push_back(pS);
-		totalTime += p[0].burst;
-		p.erase(p.begin());
-
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					ready.push_back(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			for(int i=1; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			ready[0].p.burst--;
+			ready[0].s.turnAround++;
+			if(ready[0].p.burst == 0)
+			{
+				pStats.push_back(ready[0].s);
+				ready.erase(ready.begin());
+			}
+		}		
+		totalTime++;
 	}
 }
 
