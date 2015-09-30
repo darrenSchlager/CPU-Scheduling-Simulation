@@ -42,7 +42,6 @@ typedef struct {
 void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
 void addProcessByArrival(process & p,  vector<process> & ps);
-void addProcessByBurst(process & p,  vector<process> & ps);
 void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
@@ -247,29 +246,6 @@ void addProcessByArrival(process & p,  vector<process> & ps)
 			ps[i+1] = ps[i];
 			i--;
 		} while(i>=0 && p.arrival<ps[i].arrival);
-		ps[i+1] = p;
-	}
-}
-
-/* Function:	addProcessByBurst
- *    Usage:	vector<process> p 
-				addProcessByBurst(p, ps);
- * -------------------------------------------
- * Adds the process in the apporpriate position in the vector, keeps it sorted by cpu burst time from least to greatest.
- */
-void addProcessByBurst(process & p,  vector<process> & ps)
-{
-	if(ps.size()==0 || p.burst >= ps[ps.size()-1].burst )
-		ps.push_back(p);
-	else 
-	{
-		int i = ps.size()-1;
-		ps.resize(ps.size()+1);
-		do
-		{
-			ps[i+1] = ps[i];
-			i--;
-		} while(i>=0 && p.burst<ps[i].burst);
 		ps[i+1] = p;
 	}
 }
