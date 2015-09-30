@@ -181,8 +181,8 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
-			/* if a dash comes next, read in the integer pair*/
-			if(end<line.length() && line[end] == '-')
+			/* if RR and a dash comes next, read in the integer pair*/
+			if(opt.alg==RR && end<line.length() && line[end] == '-')
 			{
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
