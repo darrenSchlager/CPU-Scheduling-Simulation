@@ -591,6 +591,8 @@ void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> 
 	processBlock *runningPtr = NULL;
 	int position = 0;
 	const int POSITION_LIMIT = 10;
+	int timeRunning = 0;
+	const int SLICE = 1000;
 	while(p.size()+ready.size()>0 || runningPtr!=NULL)
 	{
 		if(runningPtr==NULL && ready.size()==0 && totalTime<p[0].arrival)
@@ -613,17 +615,11 @@ void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> 
 			}
 			if(runningPtr==NULL)
 			{
-				if(position<8)
+				if(position<9)
 				{
 					running = ready[0];
 					runningPtr = &running;
 					ready.erase(ready.begin());
-					position = (position+1)%POSITION_LIMIT;
-				}
-				else if(position<9){
-					running = ready[ready.size()/2];
-					runningPtr = &running;
-					ready.erase(ready.begin() + ready.size()/2);
 					position = (position+1)%POSITION_LIMIT;
 				}
 				else if(position<10){
@@ -632,6 +628,7 @@ void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> 
 					ready.erase(ready.begin() + ready.size()-1);
 					position = (position+1)%POSITION_LIMIT;
 				}
+				timeRunning=0;
 			}
 			for(int i=0; i<ready.size(); i++)
 			{
@@ -640,9 +637,15 @@ void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> 
 			}
 			running.p.burst--;
 			running.s.turnAround++;
+			timeRunning++;
 			if(running.p.burst==0)
 			{
 				pStats.push_back(running.s);
+				runningPtr = NULL;
+			}
+			if(position==9 && timeRunning==SLICE)
+			{
+				addProcessBlockByBurst(running, ready);
 				runningPtr = NULL;
 			}
 		}
