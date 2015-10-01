@@ -6,12 +6,12 @@
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 4
+#define NUM_ALGORITHMS 5
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "A"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR
+	FCFS, PSJF, NPSJF, RR, A
 };
 
 //process timing
@@ -48,6 +48,7 @@ void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<proce
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -74,6 +75,9 @@ int main(int argc, char *argv[])
 				break;
 			case RR:
 				rr(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case A:
+				a(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			default: 
 				break;
@@ -561,6 +565,85 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 				running = false;
 				preempted.push_back(ready[0]);
 				ready.erase(ready.begin());
+			}
+		}
+		totalTime++;
+	}
+}
+
+/* Function:	a
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	a(ps, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the Alternator scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	vector<processBlock> ready;
+	processBlock running;
+	processBlock *runningPtr = NULL;
+	int position = 0;
+	const int POSITION_LIMIT = 10;
+	while(p.size()+ready.size()>0 || runningPtr!=NULL)
+	{
+		if(runningPtr==NULL && ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					addProcessBlockByBurst(b, ready);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(runningPtr==NULL)
+			{
+				if(position<8)
+				{
+					running = ready[0];
+					runningPtr = &running;
+					ready.erase(ready.begin());
+					position = (position+1)%POSITION_LIMIT;
+				}
+				else if(position<9){
+					running = ready[ready.size()/2];
+					runningPtr = &running;
+					ready.erase(ready.begin() + ready.size()/2);
+					position = (position+1)%POSITION_LIMIT;
+				}
+				else if(position<10){
+					running = ready[ready.size()-1];
+					runningPtr = &running;
+					ready.erase(ready.begin() + ready.size()-1);
+					position = (position+1)%POSITION_LIMIT;
+				}
+			}
+			for(int i=0; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			running.p.burst--;
+			running.s.turnAround++;
+			if(running.p.burst==0)
+			{
+				pStats.push_back(running.s);
+				runningPtr = NULL;
 			}
 		}
 		totalTime++;
