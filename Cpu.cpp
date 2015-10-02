@@ -6,12 +6,12 @@
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 5
+#define NUM_ALGORITHMS 6
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "A"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "A", "RRPB"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR, A
+	FCFS, PSJF, NPSJF, RR, A, RRPB
 };
 
 //process timing
@@ -24,6 +24,7 @@ typedef struct {
 typedef struct {
 	int waiting;
 	int turnAround;
+	int runCount;
 } processStats;
 
 //process block
@@ -49,6 +50,7 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -79,6 +81,8 @@ int main(int argc, char *argv[])
 			case A:
 				a(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
+			case RRPB:
+				rrpb(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
 			default: 
 				break;
 		}
@@ -185,8 +189,8 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
-			/* if RR and a dash comes next, read in the integer pair*/
-			if(opt.alg==RR && end<line.length() && line[end] == '-')
+			/* if RR or RRPB and a dash comes next, read in the integer pair*/
+			if((opt.alg==RR || opt.alg==RRPB) && end<line.length() && line[end] == '-')
 			{
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
@@ -243,7 +247,7 @@ void addProcessByArrival(process & p,  vector<process> & ps)
 		ps.push_back(p);
 	else 
 	{
-		int i = ps.size()-1;
+		int i = (int)ps.size()-1;
 		ps.resize(ps.size()+1);
 		do
 		{
@@ -266,7 +270,7 @@ void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs)
 		bs.push_back(b);
 	else 
 	{
-		int i = bs.size()-1;
+		int i = (int)bs.size()-1;
 		bs.resize(bs.size()+1);
 		do
 		{
@@ -308,7 +312,7 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
 		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg == RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		if(opts[i].alg == RR || opts[i].alg==RRPB) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
 		cout << setw(w) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 	}
 }
@@ -647,6 +651,128 @@ void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> 
 			{
 				addProcessBlockByBurst(running, ready);
 				runningPtr = NULL;
+			}
+		}
+		totalTime++;
+	}
+}
+
+/* Function:	rrpb
+				int slice;
+				int switchTime;
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	rrpb(ps, slice, switchTime, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the RRPB (round robin push-back) scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - slice: the time quantum each process receives
+ * - switchTime: the time it takes to switch processes
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	vector<processBlock> ready;
+	vector< vector<processBlock> > preempted(10, vector<processBlock>());
+	int preemptedSize=0;
+	int timeRunning = 0;
+	bool running = false;
+	while(p.size()+ready.size()+preemptedSize>0 || running)
+	{
+		if(!running && ready.size()==0 && preemptedSize==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					b.s.runCount=0;
+					ready.push_back(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(!running)
+			{
+				if(ready.size()==0)
+				{
+					for(int i=0; i<preempted.size(); i++)
+					{
+						if(preempted[i].size()>0)
+						{
+							ready.swap(preempted[i]);
+							preemptedSize -= ready.size();
+							break;
+						}
+					}
+					
+				}
+				idleTime += switchTime;
+				totalTime += switchTime;
+				for(int i=0; i<ready.size(); i++)
+				{
+					ready[i].s.waiting += switchTime;
+					ready[i].s.turnAround += switchTime;
+				}
+				for(int i=0; i<preempted.size(); i++)
+				{
+					for(int j=0; j<preempted[i].size(); j++)
+					{
+						preempted[i][j].s.waiting += switchTime;
+						preempted[i][j].s.turnAround += switchTime;
+					}
+				}
+				running = true;
+				timeRunning = 0;
+			}
+			for(int i=1; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			for(int i=0; i<preempted.size(); i++)
+			{
+				for(int j=0; j<preempted[i].size(); j++)
+				{
+					preempted[i][j].s.waiting += switchTime;
+					preempted[i][j].s.turnAround += switchTime;
+				}
+			}
+			ready[0].p.burst--;
+			ready[0].s.turnAround++;
+			timeRunning++;
+			ready[0].s.runCount++;
+			if(ready[0].p.burst==0)
+			{	
+				running=false;			
+				pStats.push_back(ready[0].s);
+				ready.erase(ready.begin());
+			}
+			else if(timeRunning==slice)
+			{
+				running = false;
+				if(ready[0].s.runCount<20) preempted[0].push_back(ready[0]);
+				else if(ready[0].s.runCount<30) preempted[1].push_back(ready[0]);
+				else if(ready[0].s.runCount<40) preempted[2].push_back(ready[0]);
+				else if(ready[0].s.runCount<50) preempted[3].push_back(ready[0]);
+				else if(ready[0].s.runCount<60) preempted[4].push_back(ready[0]);
+				else if(ready[0].s.runCount<70) preempted[5].push_back(ready[0]);
+				else if(ready[0].s.runCount<80) preempted[6].push_back(ready[0]);
+				else if(ready[0].s.runCount<90) preempted[7].push_back(ready[0]);
+				else if(ready[0].s.runCount<100) preempted[8].push_back(ready[0]);
+				else if(ready[0].s.runCount>=100) preempted[9].push_back(ready[0]);
+				preemptedSize++;
+				ready.erase(ready.begin());
 			}
 		}
 		totalTime++;
