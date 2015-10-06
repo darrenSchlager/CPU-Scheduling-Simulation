@@ -6,12 +6,12 @@
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 6
+#define NUM_ALGORITHMS 7
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "A", "RRPB"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "RRS", "A", "RRPB"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR, A, RRPB
+	FCFS, PSJF, NPSJF, RR, RRS, A, RRPB
 };
 
 //process timing
@@ -49,6 +49,7 @@ void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<proce
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void rrs(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
@@ -77,6 +78,9 @@ int main(int argc, char *argv[])
 				break;
 			case RR:
 				rr(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case RRS:
+				rrs(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			case A:
 				a(processes, totalTimes[i], idleTimes[i], pStats[i]);
@@ -189,8 +193,8 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
-			/* if RR or RRPB and a dash comes next, read in the integer pair*/
-			if((opt.alg==RR || opt.alg==RRPB) && end<line.length() && line[end] == '-')
+			/* if RR, RRS, or RRPB and a dash comes next, read in the integer pair*/
+			if((opt.alg==RR || opt.alg==RRS || opt.alg==RRPB) && end<line.length() && line[end] == '-')
 			{
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
@@ -312,7 +316,7 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
 		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg == RR || opts[i].alg==RRPB) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		if(opts[i].alg == RR || opts[i].alg==RRS || opts[i].alg==RRPB) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
 		cout << setw(w) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 	}
 }
@@ -490,7 +494,7 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 				int totalTime;
 				int idleTime;
 				vector<processStats> pStats;
- *    Usage:	psjf(ps, slice, switchTime, totalTime, idleTime, pStats);
+ *    Usage:	rr(ps, slice, switchTime, totalTime, idleTime, pStats);
  * -------------------------------------------
  * Runs a simulation of the RR scheduling algorithm. 
  * - ps: contains the processes to schedule and execute
@@ -499,6 +503,85 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	vector<processBlock> ready;
+	int timeRunning = 0;
+	bool running = false;
+	while(p.size()+ready.size() || running)
+	{
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					ready.push_back(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(!running)
+			{
+				idleTime += switchTime;
+				totalTime += switchTime;
+				for(int i=0; i<ready.size(); i++)
+				{
+					ready[i].s.waiting += switchTime;
+					ready[i].s.turnAround += switchTime;
+				}
+				running = true;
+				timeRunning = 0;
+			}
+			for(int i=1; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			ready[0].p.burst--;
+			ready[0].s.turnAround++;
+			timeRunning++;
+			if(ready[0].p.burst==0)
+			{	
+				running=false;			
+				pStats.push_back(ready[0].s);
+				ready.erase(ready.begin());
+			}
+			else if(timeRunning==slice)
+			{
+				running = false;
+				ready.push_back(ready[0]);
+				ready.erase(ready.begin());
+			}
+		}
+		totalTime++;
+	}
+}
+
+/* Function:	rrs
+				int slice;
+				int switchTime;
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	rrs(ps, slice, switchTime, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the RRS scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - slice: the time quantum each process receives
+ * - switchTime: the time it takes to switch processes
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void rrs(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
