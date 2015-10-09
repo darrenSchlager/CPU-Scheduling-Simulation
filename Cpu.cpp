@@ -764,6 +764,8 @@ void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & i
 	int preemptedSize=0;
 	int timeRunning = 0;
 	bool running = false;
+	int baseline = 1000/slice;
+	if(baseline == 0) baseline = 1;
 	while(p.size()+ready.size()+preemptedSize>0 || running)
 	{
 		if(!running && ready.size()==0 && preemptedSize==0 && totalTime<p[0].arrival)
@@ -844,16 +846,16 @@ void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & i
 			else if(timeRunning==slice)
 			{
 				running = false;
-				if(ready[0].s.runCount<20) preempted[0].push_back(ready[0]);
-				else if(ready[0].s.runCount<30) preempted[1].push_back(ready[0]);
-				else if(ready[0].s.runCount<40) preempted[2].push_back(ready[0]);
-				else if(ready[0].s.runCount<50) preempted[3].push_back(ready[0]);
-				else if(ready[0].s.runCount<60) preempted[4].push_back(ready[0]);
-				else if(ready[0].s.runCount<70) preempted[5].push_back(ready[0]);
-				else if(ready[0].s.runCount<80) preempted[6].push_back(ready[0]);
-				else if(ready[0].s.runCount<90) preempted[7].push_back(ready[0]);
-				else if(ready[0].s.runCount<100) preempted[8].push_back(ready[0]);
-				else if(ready[0].s.runCount>=100) preempted[9].push_back(ready[0]);
+				if(ready[0].s.runCount<baseline) preempted[0].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*2) preempted[1].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*3) preempted[2].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*4) preempted[3].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*5) preempted[4].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*6) preempted[5].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*7) preempted[6].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*8) preempted[7].push_back(ready[0]);
+				else if(ready[0].s.runCount<baseline*9) preempted[8].push_back(ready[0]);
+				else if(ready[0].s.runCount>=baseline*9) preempted[9].push_back(ready[0]);
 				preemptedSize++;
 				ready.erase(ready.begin());
 			}
