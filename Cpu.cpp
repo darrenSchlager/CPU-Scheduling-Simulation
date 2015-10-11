@@ -829,14 +829,13 @@ void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & i
 			{
 				for(int j=0; j<preempted[i].size(); j++)
 				{
-					preempted[i][j].s.waiting += switchTime;
-					preempted[i][j].s.turnAround += switchTime;
+					preempted[i][j].s.waiting++;
+					preempted[i][j].s.turnAround++;
 				}
 			}
 			ready[0].p.burst--;
 			ready[0].s.turnAround++;
 			timeRunning++;
-			ready[0].s.runCount++;
 			if(ready[0].p.burst==0)
 			{	
 				running=false;			
@@ -845,6 +844,7 @@ void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & i
 			}
 			else if(timeRunning==slice)
 			{
+				ready[0].s.runCount++;
 				running = false;
 				if(ready[0].s.runCount<baseline) preempted[0].push_back(ready[0]);
 				else if(ready[0].s.runCount<baseline*2) preempted[1].push_back(ready[0]);
