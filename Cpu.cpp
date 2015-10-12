@@ -637,7 +637,7 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 				vector<processStats> pStats;
  *    Usage:	stack(ps, totalTime, idleTime, pStats);
  * -------------------------------------------
- * Runs a simulation of the STACK scheduling algorithm. 
+ * Runs a simulation of the STACK (LIFO) scheduling algorithm.
  * - ps: contains the processes to schedule and execute
  * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
  */
@@ -773,18 +773,8 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
 			}
 			else if(timeRunning==currentSlice)
 			{
-				/* maximizes cpu utilization by allowing a process to finish running if
-					its remaining burst < its next slice  								*/
-				if(cpu.p.burst>=slice)
-				{
-					ready.push_back(cpu);
-					running = false;
-				}
-				else 
-				{
-					timeRunning=0;
-				}
-				/**/
+				ready.push_back(cpu);
+				running = false;
 			}
 		}
 		totalTime++;
