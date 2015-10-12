@@ -3,15 +3,16 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <deque>
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 7
+#define NUM_ALGORITHMS 4
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "RRS", "A", "RRPB"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR, RRS, A, RRPB
+	FCFS, PSJF, NPSJF, RR
 };
 
 //process timing
@@ -24,7 +25,6 @@ typedef struct {
 typedef struct {
 	int waiting;
 	int turnAround;
-	int runCount;
 } processStats;
 
 //process block
@@ -43,19 +43,16 @@ typedef struct {
 void readInProcesses(string filename, vector<process> & prs);
 void readInOptions(string filename, vector<option> & opts);
 void addProcessByArrival(process & p,  vector<process> & ps);
-void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs);
+void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void rrs(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
-	vector<process> processes, sortedProcesses1, sortedProcesses2;
+	vector<process> processes;
 	vector<option> options;
 	readInProcesses("P.dat", processes);
 	readInOptions("S.dat", options);
@@ -79,14 +76,6 @@ int main(int argc, char *argv[])
 			case RR:
 				rr(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
-			case RRS:
-				rrs(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
-				break;
-			case A:
-				a(processes, totalTimes[i], idleTimes[i], pStats[i]);
-				break;
-			case RRPB:
-				rrpb(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
 			default: 
 				break;
 		}
@@ -193,8 +182,8 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
-			/* if RR, RRS, or RRPB and a dash comes next, read in the integer pair*/
-			if((opt.alg==RR || opt.alg==RRS || opt.alg==RRPB) && end<line.length() && line[end] == '-')
+			/* if RR and a dash comes next, read in the integer pair*/
+			if((opt.alg==RR) && end<line.length() && line[end] == '-')
 			{
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
@@ -247,7 +236,7 @@ void readInOptions(string filename, vector<option> & opts)
  */
 void addProcessByArrival(process & p,  vector<process> & ps)
 {
-	if(ps.size()==0 || p.arrival >= ps[ps.size()-1].arrival )
+	if(ps.size()==0 || p.arrival >= ps.back().arrival )
 		ps.push_back(p);
 	else 
 	{
@@ -263,14 +252,14 @@ void addProcessByArrival(process & p,  vector<process> & ps)
 }
 
 /* Function:	addProcessBlockByBurst
- *    Usage:	vector<processBlock> p 
+ *    Usage:	deque<processBlock> p 
 				addProcessBlockByBurst(b, bs);
  * -------------------------------------------
  * Adds the processBlock in the apporpriate position in the vector, keeps it sorted by the processescpu burst time from least to greatest.
  */
-void addProcessBlockByBurst(processBlock & b, vector<processBlock> & bs)
+void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
 {
-	if(bs.size()==0 || b.p.burst >= bs[bs.size()-1].p.burst )
+	if(bs.size()==0 || b.p.burst >= bs.back().p.burst )
 		bs.push_back(b);
 	else 
 	{
@@ -316,7 +305,7 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
 		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg == RR || opts[i].alg==RRS || opts[i].alg==RRPB) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		if(opts[i].alg == RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
 		cout << setw(w) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 	}
 }
@@ -336,10 +325,12 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	pStats.clear();
 	totalTime = 0;
 	idleTime = 0;
-	vector<processBlock> ready;
-	while(p.size()+ready.size()>0)
+	deque<processBlock> ready;
+	processBlock cpu;
+	bool running = false;
+	while(running || p.size()+ready.size()>0 || running)
 	{
-		if(ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
 			idleTime++;
 		}
@@ -357,17 +348,23 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 					p.erase(p.begin());
 				} while(p.size()>0 && p[0].arrival==arrive);
 			}
-			for(int i=1; i<ready.size(); i++)
+			if(!running)
+			{
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
+			}
+			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
-			ready[0].p.burst--;
-			ready[0].s.turnAround++;
-			if(ready[0].p.burst == 0)
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			if(cpu.p.burst == 0)
 			{
-				pStats.push_back(ready[0].s);
-				ready.erase(ready.begin());
+				pStats.push_back(cpu.s);
+				running = false;
 			}
 		}		
 		totalTime++;
@@ -389,12 +386,12 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 	pStats.clear();
 	totalTime = 0;
 	idleTime = 0;
-	vector<processBlock> ready;
-	processBlock running;
-	processBlock *runningPtr = NULL;
-	while(p.size()+ready.size()>0 || runningPtr!=NULL)
+	deque<processBlock> ready;
+	processBlock cpu;
+	bool running = false;
+	while(running || p.size()+ready.size()>0)
 	{
-		if(runningPtr==NULL && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
 			idleTime++;
 		}
@@ -412,23 +409,23 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 					p.erase(p.begin());
 				} while(p.size()>0 && p[0].arrival==arrive);
 			}
-			if(runningPtr==NULL)
+			if(!running)
 			{
-				running = ready[0];
-				runningPtr = &running;
-				ready.erase(ready.begin());
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
 			}
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
-			running.p.burst--;
-			running.s.turnAround++;
-			if(running.p.burst==0)
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			if(cpu.p.burst==0)
 			{
-				pStats.push_back(running.s);
-				runningPtr = NULL;
+				pStats.push_back(cpu.s);
+				running = false;
 			}
 		}
 		totalTime++;
@@ -450,10 +447,12 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	pStats.clear();
 	totalTime = 0;
 	idleTime = 0;
-	vector<processBlock> ready;
-	while(p.size()+ready.size()>0)
+	deque<processBlock> ready;
+	processBlock cpu;
+	bool running = false;
+	while(running || p.size()+ready.size()>0)
 	{
-		if(ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
 			idleTime++;
 		}
@@ -470,18 +469,30 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 					addProcessBlockByBurst(b, ready);
 					p.erase(p.begin());
 				} while(p.size()>0 && p[0].arrival==arrive);
+				if(running && cpu.p.burst>ready[0].p.burst)
+				{
+					addProcessBlockByBurst(cpu, ready);
+					cpu = ready.front();
+					ready.pop_front();
+				}
 			}
-			for(int i=1; i<ready.size(); i++)
+			if(!running)
+			{
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
+			}
+			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
-			ready[0].p.burst--;
-			ready[0].s.turnAround++;
-			if(ready[0].p.burst == 0)
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			if(cpu.p.burst == 0)
 			{
-				pStats.push_back(ready[0].s);
-				ready.erase(ready.begin());
+				pStats.push_back(cpu.s);
+				running = false;
 			}
 		}		
 		totalTime++;
@@ -507,10 +518,11 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 	pStats.clear();
 	totalTime = 0;
 	idleTime = 0;
-	vector<processBlock> ready;
+	deque<processBlock> ready;
 	int timeRunning = 0;
+	processBlock cpu;
 	bool running = false;
-	while(p.size()+ready.size() || running)
+	while(running || p.size()+ready.size())
 	{
 		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
@@ -539,325 +551,28 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 					ready[i].s.waiting += switchTime;
 					ready[i].s.turnAround += switchTime;
 				}
+				cpu = ready.front();
+				ready.pop_front();
 				running = true;
 				timeRunning = 0;
-			}
-			for(int i=1; i<ready.size(); i++)
-			{
-				ready[i].s.waiting++;
-				ready[i].s.turnAround++;
-			}
-			ready[0].p.burst--;
-			ready[0].s.turnAround++;
-			timeRunning++;
-			if(ready[0].p.burst==0)
-			{	
-				running=false;			
-				pStats.push_back(ready[0].s);
-				ready.erase(ready.begin());
-			}
-			else if(timeRunning==slice)
-			{
-				running = false;
-				ready.push_back(ready[0]);
-				ready.erase(ready.begin());
-			}
-		}
-		totalTime++;
-	}
-}
-
-/* Function:	rrs
-				int slice;
-				int switchTime;
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	rrs(ps, slice, switchTime, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the RRS scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - slice: the time quantum each process receives
- * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
- */
-void rrs(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
-{
-	pStats.clear();
-	totalTime = 0;
-	idleTime = 0;
-	vector<processBlock> ready;
-	vector<processBlock> preempted;
-	int timeRunning = 0;
-	bool running = false;
-	while(p.size()+ready.size()+preempted.size()>0 || running)
-	{
-		if(!running && ready.size()==0 && preempted.size()==0 && totalTime<p[0].arrival)
-		{
-			idleTime++;
-		}
-		else
-		{
-			if(totalTime==p[0].arrival)
-			{
-				int arrive = p[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = p[0];
-					b.s = processStats();
-					ready.push_back(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
-			}
-			if(!running)
-			{
-				if(ready.size()==0) ready.swap(preempted);
-				idleTime += switchTime;
-				totalTime += switchTime;
-				for(int i=0; i<ready.size(); i++)
-				{
-					ready[i].s.waiting += switchTime;
-					ready[i].s.turnAround += switchTime;
-				}
-				for(int i=0; i<preempted.size(); i++)
-				{
-					preempted[i].s.waiting += switchTime;
-					preempted[i].s.turnAround += switchTime;
-				}
-				running = true;
-				timeRunning = 0;
-			}
-			for(int i=1; i<ready.size(); i++)
-			{
-				ready[i].s.waiting++;
-				ready[i].s.turnAround++;
-			}
-			for(int i=0; i<preempted.size(); i++)
-			{
-				preempted[i].s.waiting++;
-				preempted[i].s.turnAround++;
-			}
-			ready[0].p.burst--;
-			ready[0].s.turnAround++;
-			timeRunning++;
-			if(ready[0].p.burst==0)
-			{	
-				running=false;			
-				pStats.push_back(ready[0].s);
-				ready.erase(ready.begin());
-			}
-			else if(timeRunning==slice)
-			{
-				running = false;
-				preempted.push_back(ready[0]);
-				ready.erase(ready.begin());
-			}
-		}
-		totalTime++;
-	}
-}
-
-/* Function:	a
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	a(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the Alternator scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
- */
-void a(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
-{
-	pStats.clear();
-	totalTime = 0;
-	idleTime = 0;
-	vector<processBlock> ready;
-	processBlock running;
-	processBlock *runningPtr = NULL;
-	int position = 0;
-	const int POSITION_LIMIT = 10;
-	int timeRunning = 0;
-	const int SLICE = 1000;
-	while(p.size()+ready.size()>0 || runningPtr!=NULL)
-	{
-		if(runningPtr==NULL && ready.size()==0 && totalTime<p[0].arrival)
-		{
-			idleTime++;
-		}
-		else
-		{
-			if(totalTime==p[0].arrival)
-			{
-				int arrive = p[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = p[0];
-					b.s = processStats();
-					addProcessBlockByBurst(b, ready);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
-			}
-			if(runningPtr==NULL)
-			{
-				if(position<9)
-				{
-					running = ready[0];
-					runningPtr = &running;
-					ready.erase(ready.begin());
-					position = (position+1)%POSITION_LIMIT;
-				}
-				else if(position<10){
-					running = ready[ready.size()-1];
-					runningPtr = &running;
-					ready.erase(ready.begin() + ready.size()-1);
-					position = (position+1)%POSITION_LIMIT;
-				}
-				timeRunning=0;
 			}
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
-			running.p.burst--;
-			running.s.turnAround++;
+			cpu.p.burst--;
+			cpu.s.turnAround++;
 			timeRunning++;
-			if(running.p.burst==0)
-			{
-				pStats.push_back(running.s);
-				runningPtr = NULL;
-			}
-			if(position==9 && timeRunning==SLICE)
-			{
-				addProcessBlockByBurst(running, ready);
-				runningPtr = NULL;
-			}
-		}
-		totalTime++;
-	}
-}
-
-/* Function:	rrpb
-				int slice;
-				int switchTime;
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	rrpb(ps, slice, switchTime, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the RRPB (round robin push-back) scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - slice: the time quantum each process receives
- * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
- */
-void rrpb(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
-{
-	pStats.clear();
-	totalTime = 0;
-	idleTime = 0;
-	vector<processBlock> ready;
-	vector< vector<processBlock> > preempted(10, vector<processBlock>());
-	int preemptedSize=0;
-	int timeRunning = 0;
-	bool running = false;
-	int baseline = 1000/slice;
-	if(baseline == 0) baseline = 1;
-	while(p.size()+ready.size()+preemptedSize>0 || running)
-	{
-		if(!running && ready.size()==0 && preemptedSize==0 && totalTime<p[0].arrival)
-		{
-			idleTime++;
-		}
-		else
-		{
-			if(totalTime==p[0].arrival)
-			{
-				int arrive = p[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = p[0];
-					b.s = processStats();
-					b.s.runCount=0;
-					ready.push_back(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
-			}
-			if(!running)
-			{
-				if(ready.size()==0)
-				{
-					for(int i=0; i<preempted.size(); i++)
-					{
-						if(preempted[i].size()>0)
-						{
-							ready.swap(preempted[i]);
-							preemptedSize -= ready.size();
-							break;
-						}
-					}
-					
-				}
-				idleTime += switchTime;
-				totalTime += switchTime;
-				for(int i=0; i<ready.size(); i++)
-				{
-					ready[i].s.waiting += switchTime;
-					ready[i].s.turnAround += switchTime;
-				}
-				for(int i=0; i<preempted.size(); i++)
-				{
-					for(int j=0; j<preempted[i].size(); j++)
-					{
-						preempted[i][j].s.waiting += switchTime;
-						preempted[i][j].s.turnAround += switchTime;
-					}
-				}
-				running = true;
-				timeRunning = 0;
-			}
-			for(int i=1; i<ready.size(); i++)
-			{
-				ready[i].s.waiting++;
-				ready[i].s.turnAround++;
-			}
-			for(int i=0; i<preempted.size(); i++)
-			{
-				for(int j=0; j<preempted[i].size(); j++)
-				{
-					preempted[i][j].s.waiting++;
-					preempted[i][j].s.turnAround++;
-				}
-			}
-			ready[0].p.burst--;
-			ready[0].s.turnAround++;
-			timeRunning++;
-			if(ready[0].p.burst==0)
+			if(cpu.p.burst==0)
 			{	
-				running=false;			
-				pStats.push_back(ready[0].s);
-				ready.erase(ready.begin());
+				pStats.push_back(cpu.s);
+				running=false;
 			}
 			else if(timeRunning==slice)
 			{
-				ready[0].s.runCount++;
+				ready.push_back(cpu);
 				running = false;
-				if(ready[0].s.runCount<baseline) preempted[0].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*2) preempted[1].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*3) preempted[2].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*4) preempted[3].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*5) preempted[4].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*6) preempted[5].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*7) preempted[6].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*8) preempted[7].push_back(ready[0]);
-				else if(ready[0].s.runCount<baseline*9) preempted[8].push_back(ready[0]);
-				else if(ready[0].s.runCount>=baseline*9) preempted[9].push_back(ready[0]);
-				preemptedSize++;
-				ready.erase(ready.begin());
 			}
 		}
 		totalTime++;
