@@ -7,27 +7,26 @@
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 4
+#define NUM_ALGORITHMS 6
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "RRP", "STACK"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR
+	FCFS, PSJF, NPSJF, RR, RRP, STACK
 };
 
-//process timing
 typedef struct {
 	int arrival;		//arrival time
 	int burst;			//cpu burst length
 } process;
 
-//process stats
 typedef struct {
 	int waiting;
 	int turnAround;
 } processStats;
 
 //process block
+//		-- useage: groups a process together with its recorded stats
 typedef struct {
 	process p;
 	processStats s;
@@ -37,6 +36,7 @@ typedef struct {
 typedef struct {
 	algorithm alg;
 	int slice;			//length of time slice
+	int prioritySlice;  //lengh of priority time slice (RRP only)
 	int switchTime;		//time it takes to perform a contet switch
 } option;
 
@@ -49,6 +49,8 @@ void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<proce
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 
 int main(int argc, char *argv[]) 
 {
@@ -75,6 +77,12 @@ int main(int argc, char *argv[])
 				break;
 			case RR:
 				rr(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case RRP:
+				rrp(processes, options[i].slice, options[i].prioritySlice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case STACK:
+				stack(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			default: 
 				break;
@@ -142,8 +150,10 @@ void readInProcesses(string filename, vector<process> & ps)
  * Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
  * Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
  * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR
- *		- The integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T) 
- *		eg. "FCFS" "RR-100/10"
+ *		- If RR, the integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T)
+ *		- If RRP, the integer pair represents the Time Slice (S), the Priority Time Slice (PS) 
+		  and the Context Switching Time (T). (eg. S/PS/T) 	 
+ *		eg. "FCFS" "RR-100/10" "RRP-100/1000/10"
  */
 void readInOptions(string filename, vector<option> & opts)
 {
@@ -182,8 +192,8 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
-			/* if RR and a dash comes next, read in the integer pair*/
-			if((opt.alg==RR) && end<line.length() && line[end] == '-')
+			/* if RR or RRP and a dash comes next, read in the integer pair*/
+			if((opt.alg==RR || opt.alg==RRP) && end<line.length() && line[end] == '-')
 			{
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
@@ -192,7 +202,7 @@ void readInOptions(string filename, vector<option> & opts)
 					exit(EXIT_FAILURE);
 				}
 				/**/
-				/* save the first number */
+				/* save the slice  */
 				int firstDigit = end;
 				for(; end<line.length() && isdigit(line[end]); end++) {}
 				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
@@ -200,15 +210,55 @@ void readInOptions(string filename, vector<option> & opts)
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
 				{
-					cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+					if(end>=line.length() || !isprint(line[end])) cerr << "ERROR-- readInOptions: S.dat - For RR, there MUST be two numbers separated by a slash" << endl;
+					else cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
 					exit(EXIT_FAILURE);
 				}
-				/**/
-				/* save the second number */
-				firstDigit = end;
-				for(; end<line.length() && isdigit(line[end]); end++) {}
-				opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
-				/**/
+				if(opt.alg==RR)
+				{
+					/**/
+					/* save the switch time */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a something comes next, error */
+					if(end<line.length())
+					{
+						cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+				}
+				else if(opt.alg==RRP)
+				{
+					/**/
+					/* save the slice priority */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a number doesnt come next, error */
+					if(!isdigit(line[++end]))
+					{
+						if(end>=line.length() || !isprint(line[end])) cerr << "ERROR-- readInOptions: S.dat - For RRP, there MUST be three numbers each separated by a slash" << endl;
+						else cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+					/* save the switch time */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a something comes next, error */
+					if(end<line.length())
+					{
+						cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+				}
 			}
 			/* if nothing come next, save the default integer pair*/
 			else if(end>=line.length() || !isprint(line[end]))
@@ -286,11 +336,12 @@ void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
 {
 	int w = 13;
+	int ww = 16;
 	cout << left;
-	cout << setw(w) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
-	cout << setw(w) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
-	cout << setw(w) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
-	cout << "==================================================" << endl;
+	cout << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
+	cout << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
+	cout << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
+	cout << "=====================================================" << endl;
 	for(int i=0; i<opts.size(); i++)
 	{
 		int totalTurnAround=0;
@@ -305,8 +356,9 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
 		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg == RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
-		cout << setw(w) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
+		if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
+		cout << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 	}
 }
 
@@ -578,3 +630,164 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 		totalTime++;
 	}
 }
+
+/* Function:	stack
+				int totalTime;
+				int idleTime
+				vector<processStats> pStats;
+ *    Usage:	stack(ps, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the STACK scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	deque<processBlock> ready;
+	processBlock cpu;
+	bool running = false;
+	while(running || p.size()+ready.size()>0 || running)
+	{
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				if(running)
+				{
+					running = false;
+					ready.push_front(cpu);
+				}
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					ready.push_front(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(!running)
+			{
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
+			}
+			for(int i=0; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			if(cpu.p.burst == 0)
+			{
+				pStats.push_back(cpu.s);
+				running = false;
+			}
+		}		
+		totalTime++;
+	}
+}
+
+/* Function:	rrp
+				int slice;
+				int switchTime;
+				int totalTime;
+				int idleTime;
+				vector<processStats> pStats;
+ *    Usage:	rrp(ps, slice, int prioritySlice, switchTime, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the RRP (round robin priority) scheduling algorithm. 
+ * - ps: contains the processes to schedule and execute
+ * - slice: the time quantum each process receives
+ * - prioritySlice: if a process has burst<prioritySlice, it runs to completion
+ * - switchTime: the time it takes to switch processes
+ * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ */
+void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	deque<processBlock> ready;
+	int timeRunning = 0;
+	processBlock cpu;
+	bool running = false;
+	int currentSlice;
+	while(running || p.size()+ready.size())
+	{
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					ready.push_back(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(!running)
+			{
+				idleTime += switchTime;
+				totalTime += switchTime;
+				for(int i=0; i<ready.size(); i++)
+				{
+					ready[i].s.waiting += switchTime;
+					ready[i].s.turnAround += switchTime;
+				}
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
+				timeRunning = 0;
+				if(cpu.p.burst <= prioritySlice) currentSlice=cpu.p.burst;
+				else currentSlice = slice;
+			}
+			for(int i=0; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			timeRunning++;
+			if(cpu.p.burst==0)
+			{	
+				pStats.push_back(cpu.s);
+				running=false;
+			}
+			else if(timeRunning==currentSlice)
+			{
+				/* maximizes cpu utilization by allowing a process to finish running if
+					its remaining burst < its next slice  								*/
+				if(cpu.p.burst>=slice)
+				{
+					ready.push_back(cpu);
+					running = false;
+				}
+				else 
+				{
+					timeRunning=0;
+				}
+				/**/
+			}
+		}
+		totalTime++;
+	}
+}
+
