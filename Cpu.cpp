@@ -144,7 +144,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			}
 			/**/
 			/* if a something comes next, error */
-			if(end<line.length())
+			if(end<line.length() && isprint(line[end]))
 			{
 				cerr << "ERROR-- readInProcesses: p.dat '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
@@ -240,7 +240,7 @@ void readInOptions(string filename, vector<option> & opts)
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
 					/* if a something comes next, error */
-					if(end<line.length())
+					if(end<line.length() && isprint(line[end]))
 					{
 						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
 						exit(EXIT_FAILURE);
@@ -268,7 +268,7 @@ void readInOptions(string filename, vector<option> & opts)
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
 					/* if a something comes next, error */
-					if(end<line.length())
+					if(end<line.length() && isprint(line[end]))
 					{
 						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
