@@ -115,12 +115,12 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[0])) 
 			{
-				cerr << "ERROR-- readInProcesses: P.dat - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
 			process pr;
-			/* save the first number */
+			/* save the arrival time */
 			int end;
 			for(end=0; end<line.length() && isdigit(line[end]); end++) {}
 			pr.arrival = stoi(line.substr(0,end));
@@ -128,14 +128,27 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[++end])) //skip over the space
 			{
-				cerr << "ERROR-- readInProcesses: P.dat - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
-			/* save the second number */
+			/* save the burst time */
 			int firstDigit = end;
 			for(; end<line.length() && isdigit(line[end]); end++) {}
 			pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
+			
+			if(pr.burst==0) //error if the burst is 0
+			{
+				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Ensure that all process burst times are > 0." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			/* if a something comes next, error */
+			if(end<line.length())
+			{
+				cerr << "ERROR-- readInProcesses: p.dat '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
+				exit(EXIT_FAILURE);
+			}
 			/**/
 			addProcessByArrival(pr, ps);
 		}
@@ -168,7 +181,7 @@ void readInOptions(string filename, vector<option> & opts)
 			/* if a letter doesnt come next, error */
 			if(!isalpha(line[0]))
 			{
-				cerr << "ERROR-- readInOptions: S.dat - Each line MUST start with a letter." << endl;
+				cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each line MUST start with a letter." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -198,7 +211,7 @@ void readInOptions(string filename, vector<option> & opts)
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
 				{
-					cerr << "ERROR-- readInOptions: S.dat - Each dash MUST be followed by a number." << endl;
+					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each dash MUST be followed by a number." << endl;
 					exit(EXIT_FAILURE);
 				}
 				/**/
@@ -206,12 +219,16 @@ void readInOptions(string filename, vector<option> & opts)
 				int firstDigit = end;
 				for(; end<line.length() && isdigit(line[end]); end++) {}
 				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
-				/**/
-				/* if a number doesnt come next, error */
-				if(!isdigit(line[++end]))
+				if(opt.slice==0) // error if the slice is 0
 				{
-					if(end>=line.length() || !isprint(line[end])) cerr << "ERROR-- readInOptions: S.dat - For RR, there MUST be two numbers separated by a slash" << endl;
-					else cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that all RR and RRP time slices are > 0." << endl;
+					exit(EXIT_FAILURE);
+				}
+				/**/
+				/* if a slash and a number dont come next, error */
+				if(line[end++]!='/' && !isdigit(line[end]))
+				{
+					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
 					exit(EXIT_FAILURE);
 				}
 				if(opt.alg==RR)
@@ -225,7 +242,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length())
 					{
-						cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -239,10 +256,9 @@ void readInOptions(string filename, vector<option> & opts)
 					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
 					/* if a number doesnt come next, error */
-					if(!isdigit(line[++end]))
+					if(line[end++]!='/' && !isdigit(line[end]))
 					{
-						if(end>=line.length() || !isprint(line[end])) cerr << "ERROR-- readInOptions: S.dat - For RRP, there MUST be three numbers each separated by a slash" << endl;
-						else cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -254,7 +270,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length())
 					{
-						cerr << "ERROR-- readInOptions: S.dat - Each slash MUST be followed by a number." << endl;
+						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -269,7 +285,8 @@ void readInOptions(string filename, vector<option> & opts)
 			/**/
 			else
 			{
-				cerr << "ERROR-- readInOptions: S.dat - Ensure that each line ONLY contains a single entry." << endl;
+				if(line[end]=='-') cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
+				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
 			}
 			opts.push_back(opt);
@@ -574,7 +591,7 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 	int timeRunning = 0;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size())
+	while(running || p.size()+ready.size()>0)
 	{
 		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
@@ -582,7 +599,7 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			while(p.size()>0 && totalTime>=p[0].arrival)
 			{
 				int arrive = p[0].arrival;
 				do
@@ -721,8 +738,8 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
 	int timeRunning = 0;
 	processBlock cpu;
 	bool running = false;
-	int currentSlice;
-	while(running || p.size()+ready.size())
+	int currentSlice = slice;
+	while(running || p.size()+ready.size()>0)
 	{
 		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
@@ -730,7 +747,7 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			while(p.size()>0 && totalTime>=p[0].arrival)
 			{
 				int arrive = p[0].arrival;
 				do
