@@ -65,7 +65,6 @@ int main(int argc, char *argv[])
 	{
 		switch (options[i].alg) 
 		{
-			
 			case FCFS:
 				fcfs(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
@@ -115,7 +114,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[0])) 
 			{
-				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -128,7 +127,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[++end])) //skip over the space
 			{
-				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -139,14 +138,14 @@ void readInProcesses(string filename, vector<process> & ps)
 			
 			if(pr.burst==0) //error if the burst is 0
 			{
-				cerr << "ERROR-- readInProcesses: P.dat '"<< line << "' - Ensure that all process burst times are > 0." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Ensure that all process burst times are > 0." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
 			/* if a something comes next, error */
 			if(end<line.length() && isprint(line[end]))
 			{
-				cerr << "ERROR-- readInProcesses: p.dat '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -181,7 +180,7 @@ void readInOptions(string filename, vector<option> & opts)
 			/* if a letter doesnt come next, error */
 			if(!isalpha(line[0]))
 			{
-				cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each line MUST start with a letter." << endl;
+				cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each line MUST start with a letter." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -200,7 +199,7 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 				else if(i==NUM_ALGORITHMS-1)
 				{
-					cerr << "ERROR-- readInOptions: S.dat - '"<< prospect << "' is not supported." << endl;
+					cerr << "ERROR-- readInOptions: " << filename << " - '"<< prospect << "' is not supported." << endl;
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -211,7 +210,7 @@ void readInOptions(string filename, vector<option> & opts)
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[++end]))
 				{
-					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each dash MUST be followed by a number." << endl;
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each dash MUST be followed by a number." << endl;
 					exit(EXIT_FAILURE);
 				}
 				/**/
@@ -221,14 +220,14 @@ void readInOptions(string filename, vector<option> & opts)
 				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
 				if(opt.slice==0) // error if the slice is 0
 				{
-					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that all RR and RRP time slices are > 0." << endl;
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Ensure that all RR and RRP time slices are > 0." << endl;
 					exit(EXIT_FAILURE);
 				}
 				/**/
 				/* if a slash and a number dont come next, error */
 				if(line[end++]!='/' && !isdigit(line[end]))
 				{
-					cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
 					exit(EXIT_FAILURE);
 				}
 				if(opt.alg==RR)
@@ -242,7 +241,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -258,7 +257,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a number doesnt come next, error */
 					if(line[end++]!='/' && !isdigit(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -270,7 +269,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -285,7 +284,7 @@ void readInOptions(string filename, vector<option> & opts)
 			/**/
 			else
 			{
-				if(line[end]=='-') cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
+				if(line[end]=='-') cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
 				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
 			}
@@ -397,7 +396,7 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0 || running)
+	while(running || p.size()+ready.size()>0)
 	{
 		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
@@ -666,7 +665,7 @@ void stack(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0 || running)
+	while(running || p.size()+ready.size()>0)
 	{
 		if(!running && ready.size()==0 && totalTime<p[0].arrival)
 		{
