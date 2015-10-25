@@ -386,7 +386,9 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
  * -------------------------------------------
  * Runs a simulation of the FCFS scheduling algorithm. 
  * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -447,7 +449,9 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
  * -------------------------------------------
  * Runs a simulation of the NPSJF scheduling algorithm. 
  * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -508,7 +512,9 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
  * -------------------------------------------
  * Runs a simulation of the PSJF scheduling algorithm. 
  * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -579,7 +585,9 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
  * - ps: contains the processes to schedule and execute
  * - slice: the time quantum each process receives
  * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -655,7 +663,9 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
  * -------------------------------------------
  * Runs a simulation of the STACK (LIFO) scheduling algorithm.
  * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -726,7 +736,9 @@ void stack(vector<process> p, int & totalTime, int & idleTime, vector<processSta
  * - slice: the time quantum each process receives
  * - prioritySlice: if a process has burst<prioritySlice, it runs to completion
  * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, and the timing statistics for each process are stored into pStats.
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
  */
 void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
