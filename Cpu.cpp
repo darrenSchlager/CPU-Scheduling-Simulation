@@ -7,12 +7,12 @@
 #include <cctype>
 using namespace std;
 
-#define NUM_ALGORITHMS 6
+#define NUM_ALGORITHMS 5
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "NPSJF", "PSJF", "RR", "RRP", "STACK"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "NPSJF", "PSJF", "RR", "RRP"};
 
 enum algorithm {
-	FCFS, NPSJF, PSJF, RR, RRP, STACK
+	FCFS, NPSJF, PSJF, RR, RRP
 };
 
 typedef struct {
@@ -45,7 +45,6 @@ void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSt
 void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void stack(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void addProcessByArrival(process & p,  vector<process> & ps);
 void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
 void addNewArrivals(vector<process> & ps, deque<processBlock> & ready);
@@ -81,9 +80,6 @@ int main(int argc, char *argv[])
 				break;
 			case RRP:
 				rrp(processes, options[i].slice, options[i].prioritySlice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
-				break;
-			case STACK:
-				stack(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			default: 
 				break;
@@ -410,74 +406,6 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 				running = false;
 			}
 		}
-		totalTime++;
-	}
-}
-
-/* Function:	stack
-				int totalTime;
-				int idleTime
-				vector<processStats> pStats;
- *    Usage:	stack(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the STACK (LIFO) scheduling algorithm.
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
- */
-void stack(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
-{
-	pStats.clear();
-	totalTime = 0;
-	idleTime = 0;
-	deque<processBlock> ready;
-	processBlock cpu;
-	bool running = false;
-	while(running || ps.size()+ready.size()>0)
-	{
-		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
-		{
-			idleTime++;
-		}
-		else
-		{
-			if(totalTime==ps[0].arrival)
-			{
-				if(running)
-				{
-					running = false;
-					ready.push_front(cpu);
-				}
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					ready.push_front(b);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
-			}
-			if(!running)
-			{
-				cpu = ready.front();
-				ready.pop_front();
-				running = true;
-			}
-			for(int i=0; i<ready.size(); i++)
-			{
-				ready[i].s.waiting++;
-				ready[i].s.turnAround++;
-			}
-			cpu.p.burst--;
-			cpu.s.turnAround++;
-			if(cpu.p.burst == 0)
-			{
-				pStats.push_back(cpu.s);
-				running = false;
-			}
-		}		
 		totalTime++;
 	}
 }
