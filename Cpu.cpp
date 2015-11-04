@@ -117,7 +117,7 @@ void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 		}
 		else
 		{
-			if(totalTime==ps[0].arrival)
+			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
@@ -172,7 +172,7 @@ void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSt
 		}
 		else
 		{
-			if(totalTime==ps[0].arrival)
+			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivalsInOrder(ps, ready);
 			}
@@ -227,7 +227,7 @@ void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 		}
 		else
 		{
-			if(totalTime==ps[0].arrival)
+			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivalsInOrder(ps, ready);
 				if(running && cpu.p.burst>ready[0].p.burst)
