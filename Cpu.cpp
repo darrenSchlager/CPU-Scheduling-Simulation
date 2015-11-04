@@ -40,16 +40,16 @@ typedef struct {
 	int switchTime;		//time it takes to perform a contet switch
 } option;
 
-void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void stack(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void addProcessByArrival(process & p,  vector<process> & ps);
 void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
-void readInProcesses(string filename, vector<process> & prs);
+void readInProcesses(string filename, vector<process> & ps);
 void readInOptions(string filename, vector<option> & opts);
 
 int main(int argc, char *argv[]) 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -111,25 +111,25 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			if(totalTime==ps[0].arrival)
 			{
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					ready.push_back(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 			}
 			if(!running)
 			{
@@ -166,7 +166,7 @@ void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStat
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -174,25 +174,25 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			if(totalTime==ps[0].arrival)
 			{
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					addProcessBlockByBurst(b, ready);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 			}
 			if(!running)
 			{
@@ -229,7 +229,7 @@ void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processSta
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -237,25 +237,25 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			if(totalTime==ps[0].arrival)
 			{
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					addProcessBlockByBurst(b, ready);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 				if(running && cpu.p.burst>ready[0].p.burst)
 				{
 					addProcessBlockByBurst(cpu, ready);
@@ -287,7 +287,6 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
 }
 
 /* Function:	rr
-				int slice;
 				int switchTime;
 				int totalTime;
 				int idleTime;
@@ -302,7 +301,7 @@ void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStat
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -311,25 +310,25 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 	int timeRunning = 0;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			while(p.size()>0 && totalTime>=p[0].arrival)
+			while(ps.size()>0 && totalTime>=ps[0].arrival)
 			{
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					ready.push_back(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 			}
 			if(!running)
 			{
@@ -369,7 +368,6 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 }
 
 /* Function:	rrp
-				int slice;
 				int switchTime;
 				int totalTime;
 				int idleTime;
@@ -385,7 +383,7 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -395,25 +393,25 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
 	processBlock cpu;
 	bool running = false;
 	int currentSlice = slice;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			while(p.size()>0 && totalTime>=p[0].arrival)
+			while(ps.size()>0 && totalTime>=ps[0].arrival)
 			{
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					ready.push_back(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 			}
 			if(!running)
 			{
@@ -466,7 +464,7 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
  *	 the total time the cpu is idle is stored into idleTime,
  *	 and the timing statistics for each process are stored into pStats.
  */
-void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+void stack(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
 	pStats.clear();
 	totalTime = 0;
@@ -474,30 +472,30 @@ void stack(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 	deque<processBlock> ready;
 	processBlock cpu;
 	bool running = false;
-	while(running || p.size()+ready.size()>0)
+	while(running || ps.size()+ready.size()>0)
 	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 		}
 		else
 		{
-			if(totalTime==p[0].arrival)
+			if(totalTime==ps[0].arrival)
 			{
 				if(running)
 				{
 					running = false;
 					ready.push_front(cpu);
 				}
-				int arrive = p[0].arrival;
+				int arrive = ps[0].arrival;
 				do
 				{
 					processBlock b;
-					b.p = p[0];
+					b.p = ps[0];
 					b.s = processStats();
 					ready.push_front(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
+					ps.erase(ps.begin());
+				} while(ps.size()>0 && ps[0].arrival==arrive);
 			}
 			if(!running)
 			{
@@ -523,7 +521,7 @@ void stack(vector<process> p, int & totalTime, int & idleTime, vector<processSta
 }
 
 /* Function:	addProcessByArrival
- *    Usage:	vector<process> p 
+ *    Usage:	vector<process> ps 
 				addProcessByArrival(p, ps);
  * -------------------------------------------
  * Adds the process in the apporpriate position in the vector, keeps it sorted by arrival time from least to greatest.
