@@ -48,6 +48,8 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 void stack(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void addProcessByArrival(process & p,  vector<process> & ps);
 void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
+void addNewArrivals(vector<process> & ps, deque<processBlock> & ready);
+void addNewArrivalsInOrder(vector<process> & ps, deque<processBlock> & ready);
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
 void readInProcesses(string filename, vector<process> & ps);
 void readInOptions(string filename, vector<option> & opts);
@@ -121,15 +123,7 @@ void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 		{
 			if(totalTime==ps[0].arrival)
 			{
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					ready.push_back(b);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
+				addNewArrivals(ps, ready);
 			}
 			if(!running)
 			{
@@ -184,15 +178,7 @@ void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSt
 		{
 			if(totalTime==ps[0].arrival)
 			{
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					addProcessBlockByBurst(b, ready);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
+				addNewArrivalsInOrder(ps, ready);
 			}
 			if(!running)
 			{
@@ -247,15 +233,7 @@ void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 		{
 			if(totalTime==ps[0].arrival)
 			{
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					addProcessBlockByBurst(b, ready);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
+				addNewArrivalsInOrder(ps, ready);
 				if(running && cpu.p.burst>ready[0].p.burst)
 				{
 					addProcessBlockByBurst(cpu, ready);
@@ -320,15 +298,7 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 		{
 			while(ps.size()>0 && totalTime>=ps[0].arrival)
 			{
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					ready.push_back(b);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
+				addNewArrivals(ps, ready);
 			}
 			if(!running)
 			{
@@ -403,15 +373,7 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 		{
 			while(ps.size()>0 && totalTime>=ps[0].arrival)
 			{
-				int arrive = ps[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = ps[0];
-					b.s = processStats();
-					ready.push_back(b);
-					ps.erase(ps.begin());
-				} while(ps.size()>0 && ps[0].arrival==arrive);
+				addNewArrivals(ps, ready);
 			}
 			if(!running)
 			{
@@ -564,6 +526,46 @@ void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
 		} while(i>=0 && b.p.burst<bs[i].p.burst);
 		bs[i+1] = b;
 	}
+}
+
+/* Function:	addNewArrivals
+ *    Usage:	deque<processBlock> bs
+ addNewArrivals(ps, ready);
+ * -------------------------------------------
+ * For all processes in 'ps' that have the same arrival time as 'ps[0]', a new 'processBlock' is created, initialized,
+ * and inserted at the end of 'ready'.
+ */
+void addNewArrivals(vector<process> & ps, deque<processBlock> & ready)
+{
+	int arrive = ps[0].arrival;
+	do
+	{
+		processBlock b;
+		b.p = ps[0];
+		b.s = processStats();
+		ready.push_back(b);
+		ps.erase(ps.begin());
+	} while(ps.size()>0 && ps[0].arrival==arrive);
+}
+
+/* Function:	addNewArrivalsInOrder
+ *    Usage:	deque<processBlock> bs
+ addNewArrivalsInOrder(ps, ready);
+ * -------------------------------------------
+ * For all processes in 'ps' that have the same arrival time as 'ps[0]', a new 'processBlock' is created, initialized,
+ * and inserted at the correct position in 'ready'.
+ */
+void addNewArrivalsInOrder(vector<process> & ps, deque<processBlock> & ready)
+{
+	int arrive = ps[0].arrival;
+	do
+	{
+		processBlock b;
+		b.p = ps[0];
+		b.s = processStats();
+		addProcessBlockByBurst(b, ready);
+		ps.erase(ps.begin());
+	} while(ps.size()>0 && ps[0].arrival==arrive);
 }
 
 /* Function:	printReport
