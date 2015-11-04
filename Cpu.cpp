@@ -9,10 +9,10 @@ using namespace std;
 
 #define NUM_ALGORITHMS 6
 
-const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "PSJF", "NPSJF", "RR", "RRP", "STACK"};
+const string ALGORITHM[NUM_ALGORITHMS] = {"FCFS", "NPSJF", "PSJF", "RR", "RRP", "STACK"};
 
 enum algorithm {
-	FCFS, PSJF, NPSJF, RR, RRP, STACK
+	FCFS, NPSJF, PSJF, RR, RRP, STACK
 };
 
 typedef struct {
@@ -40,17 +40,17 @@ typedef struct {
 	int switchTime;		//time it takes to perform a contet switch
 } option;
 
-void readInProcesses(string filename, vector<process> & prs);
-void readInOptions(string filename, vector<option> & opts);
-void addProcessByArrival(process & p,  vector<process> & ps);
-void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
-void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
-void fcfs(const vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void fcfs(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void npsjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void psjf(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
-void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
 void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats);
+void addProcessByArrival(process & p,  vector<process> & ps);
+void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs);
+void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes);
+void readInProcesses(string filename, vector<process> & prs);
+void readInOptions(string filename, vector<option> & opts);
 
 int main(int argc, char *argv[]) 
 {
@@ -68,11 +68,11 @@ int main(int argc, char *argv[])
 			case FCFS:
 				fcfs(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
-			case PSJF:
-				psjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
-				break;
 			case NPSJF:
 				npsjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
+				break;
+			case PSJF:
+				psjf(processes, totalTimes[i], idleTimes[i], pStats[i]);
 				break;
 			case RR:
 				rr(processes, options[i].slice, options[i].switchTime, totalTimes[i], idleTimes[i], pStats[i]);
@@ -89,293 +89,6 @@ int main(int argc, char *argv[])
 		
 	}
 	printReport(options, pStats, totalTimes, idleTimes);
-}
-
-/* Function:	readInProcesses
- *    Usage:	vector<process> ps;
-				readInProcess("P.dat", ps);
- * -------------------------------------------
- * Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. ps).
- * Each line of the file must contain two numbers separated by a space:
- * 		- The first number is the arrival time (in milliseconds),
- *		- The second number is the amount of time the process requires to complete (in milliseconds)
- *		eg. "30 2000"
- */
-void readInProcesses(string filename, vector<process> & ps)
-{
-	ps.clear();
-	ifstream p(filename, fstream::in);
-	string line;
-	while(p.good())
-	{
-		getline(p, line);
-		if(line.length()>0 && isprint(line[0]))
-		{
-			/* if a number doesnt come next, error */
-			if(!isdigit(line[0])) 
-			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
-				exit(EXIT_FAILURE);
-			}
-			/**/
-			process pr;
-			/* save the arrival time */
-			int end;
-			for(end=0; end<line.length() && isdigit(line[end]); end++) {}
-			pr.arrival = stoi(line.substr(0,end));
-			/**/
-			/* if a number doesnt come next, error */
-			if(!isdigit(line[++end])) //skip over the space
-			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
-				exit(EXIT_FAILURE);
-			}
-			/**/
-			/* save the burst time */
-			int firstDigit = end;
-			for(; end<line.length() && isdigit(line[end]); end++) {}
-			pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
-			
-			if(pr.burst==0) //error if the burst is 0
-			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Ensure that all process burst times are > 0." << endl;
-				exit(EXIT_FAILURE);
-			}
-			/**/
-			/* if a something comes next, error */
-			if(end<line.length() && isprint(line[end]))
-			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
-				exit(EXIT_FAILURE);
-			}
-			/**/
-			addProcessByArrival(pr, ps);
-		}
-	}
-	p.close();
-}
-
-/* Function:	readInOptions
- *    Usage:	vector<option> opts;
-				readInOptions("S.dat", opts);
- * -------------------------------------------
- * Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
- * Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
- * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR
- *		- If RR, the integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T)
- *		- If RRP, the integer pair represents the Time Slice (S), the Priority Time Slice (PS) 
-		  and the Context Switching Time (T). (eg. S/PS/T) 	 
- *		eg. "FCFS" "RR-100/10" "RRP-100/1000/10"
- */
-void readInOptions(string filename, vector<option> & opts)
-{
-	opts.clear();
-	ifstream s(filename, fstream::in);
-	string line;
-	while(s.good())
-	{
-		getline(s, line);
-		if(line.length()>0 && isprint(line[0]))
-		{
-			/* if a letter doesnt come next, error */
-			if(!isalpha(line[0]))
-			{
-				cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each line MUST start with a letter." << endl;
-				exit(EXIT_FAILURE);
-			}
-			/**/
-			
-			option opt;
-			/* save the option */
-			int end;
-			for(end=0; end<line.length() && isalpha(line[end]); end++) {}
-			string prospect = line.substr(0,end);
-			for(int i=0; i<NUM_ALGORITHMS; i++)
-			{
-				if(prospect==ALGORITHM[i]) 
-				{
-					opt.alg = (algorithm)i;
-					break;
-				}
-				else if(i==NUM_ALGORITHMS-1)
-				{
-					cerr << "ERROR-- readInOptions: " << filename << " - '"<< prospect << "' is not supported." << endl;
-					exit(EXIT_FAILURE);
-				}
-			}
-			/**/
-			/* if RR or RRP and a dash comes next, read in the integer pair*/
-			if((opt.alg==RR || opt.alg==RRP) && end<line.length() && line[end] == '-')
-			{
-				/* if a number doesnt come next, error */
-				if(!isdigit(line[++end]))
-				{
-					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each dash MUST be followed by a number." << endl;
-					exit(EXIT_FAILURE);
-				}
-				/**/
-				/* save the slice  */
-				int firstDigit = end;
-				for(; end<line.length() && isdigit(line[end]); end++) {}
-				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
-				if(opt.slice==0) // error if the slice is 0
-				{
-					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Ensure that all RR and RRP time slices are > 0." << endl;
-					exit(EXIT_FAILURE);
-				}
-				/**/
-				/* if a slash and a number dont come next, error */
-				if(line[end++]!='/' && !isdigit(line[end]))
-				{
-					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
-					exit(EXIT_FAILURE);
-				}
-				if(opt.alg==RR)
-				{
-					/**/
-					/* save the switch time */
-					firstDigit = end;
-					for(; end<line.length() && isdigit(line[end]); end++) {}
-					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
-					/**/
-					/* if a something comes next, error */
-					if(end<line.length() && isprint(line[end]))
-					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
-						exit(EXIT_FAILURE);
-					}
-					/**/
-				}
-				else if(opt.alg==RRP)
-				{
-					/**/
-					/* save the slice priority */
-					firstDigit = end;
-					for(; end<line.length() && isdigit(line[end]); end++) {}
-					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
-					/**/
-					/* if a number doesnt come next, error */
-					if(line[end++]!='/' && !isdigit(line[end]))
-					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
-						exit(EXIT_FAILURE);
-					}
-					/**/
-					/* save the switch time */
-					firstDigit = end;
-					for(; end<line.length() && isdigit(line[end]); end++) {}
-					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
-					/**/
-					/* if a something comes next, error */
-					if(end<line.length() && isprint(line[end]))
-					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
-						exit(EXIT_FAILURE);
-					}
-					/**/
-				}
-			}
-			/* if nothing come next, save the default integer pair*/
-			else if(end>=line.length() || !isprint(line[end]))
-			{
-				opt.slice = 0;
-				opt.switchTime = 0;
-			}
-			/**/
-			else
-			{
-				if(line[end]=='-') cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
-				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
-				exit(EXIT_FAILURE);
-			}
-			opts.push_back(opt);
-		}
-	}
-	s.close();
-}
-
-/* Function:	addProcessByArrival
- *    Usage:	vector<process> p 
-				addProcessByArrival(p, ps);
- * -------------------------------------------
- * Adds the process in the apporpriate position in the vector, keeps it sorted by arrival time from least to greatest.
- */
-void addProcessByArrival(process & p,  vector<process> & ps)
-{
-	if(ps.size()==0 || p.arrival >= ps.back().arrival )
-		ps.push_back(p);
-	else 
-	{
-		int i = (int)ps.size()-1;
-		ps.resize(ps.size()+1);
-		do
-		{
-			ps[i+1] = ps[i];
-			i--;
-		} while(i>=0 && p.arrival<ps[i].arrival);
-		ps[i+1] = p;
-	}
-}
-
-/* Function:	addProcessBlockByBurst
- *    Usage:	deque<processBlock> p 
-				addProcessBlockByBurst(b, bs);
- * -------------------------------------------
- * Adds the processBlock in the apporpriate position in the vector, keeps it sorted by the processescpu burst time from least to greatest.
- */
-void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
-{
-	if(bs.size()==0 || b.p.burst >= bs.back().p.burst )
-		bs.push_back(b);
-	else 
-	{
-		int i = (int)bs.size()-1;
-		bs.resize(bs.size()+1);
-		do
-		{
-			bs[i+1] = bs[i];
-			i--;
-		} while(i>=0 && b.p.burst<bs[i].p.burst);
-		bs[i+1] = b;
-	}
-}
-
-/* Function:	printReport
- *    Usage:	printReport(opts, pStats, totalTimes, idleTimes);
- * -------------------------------------------
- * Prints out the results of multiple cpu scheduling option simulations.
- * - opts: contains all of the simulated cpu scheduling options
- * - pStats: a 2d vector where each row contains the processStats for each simulated cpu scheduling option
- * - totalTimes: contains the total running time for each simulated cpu scheduling option
- * - idleTimes: contains the cpu idle time for each simulated cpu scheduling option
- */
-void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
-{
-	int w = 13;
-	int ww = 16;
-	cout << left;
-	cout << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
-	cout << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
-	cout << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
-	cout << "=====================================================" << endl;
-	for(int i=0; i<opts.size(); i++)
-	{
-		int totalTurnAround=0;
-		int totalWaiting=0;
-		for(int j = 0; j<pStats[i].size(); j++)
-		{
-			totalTurnAround += pStats[i][j].turnAround;
-			totalWaiting += pStats[i][j].waiting;
-		}
-		double avgTurnAround = (double)totalTurnAround/pStats[i].size();
-		double avgWaiting = (double)totalWaiting/pStats[i].size();
-		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
-
-		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
-		if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
-		cout << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
-	}
 }
 
 /* Function:	fcfs
@@ -655,74 +368,6 @@ void rr(vector<process> p, int slice, int switchTime, int & totalTime, int & idl
 	}
 }
 
-/* Function:	stack
-				int totalTime;
-				int idleTime
-				vector<processStats> pStats;
- *    Usage:	stack(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the STACK (LIFO) scheduling algorithm.
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
- */
-void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
-{
-	pStats.clear();
-	totalTime = 0;
-	idleTime = 0;
-	deque<processBlock> ready;
-	processBlock cpu;
-	bool running = false;
-	while(running || p.size()+ready.size()>0)
-	{
-		if(!running && ready.size()==0 && totalTime<p[0].arrival)
-		{
-			idleTime++;
-		}
-		else
-		{
-			if(totalTime==p[0].arrival)
-			{
-				if(running)
-				{
-					running = false;
-					ready.push_front(cpu);
-				}
-				int arrive = p[0].arrival;
-				do
-				{
-					processBlock b;
-					b.p = p[0];
-					b.s = processStats();
-					ready.push_front(b);
-					p.erase(p.begin());
-				} while(p.size()>0 && p[0].arrival==arrive);
-			}
-			if(!running)
-			{
-				cpu = ready.front();
-				ready.pop_front();
-				running = true;
-			}
-			for(int i=0; i<ready.size(); i++)
-			{
-				ready[i].s.waiting++;
-				ready[i].s.turnAround++;
-			}
-			cpu.p.burst--;
-			cpu.s.turnAround++;
-			if(cpu.p.burst == 0)
-			{
-				pStats.push_back(cpu.s);
-				running = false;
-			}
-		}		
-		totalTime++;
-	}
-}
-
 /* Function:	rrp
 				int slice;
 				int switchTime;
@@ -809,3 +454,357 @@ void rrp(vector<process> p, int slice, int prioritySlice, int switchTime, int & 
 	}
 }
 
+/* Function:	stack
+				int totalTime;
+				int idleTime
+				vector<processStats> pStats;
+ *    Usage:	stack(ps, totalTime, idleTime, pStats);
+ * -------------------------------------------
+ * Runs a simulation of the STACK (LIFO) scheduling algorithm.
+ * - ps: contains the processes to schedule and execute
+ * - The total time of execution is stored into totalTime, 
+ *	 the total time the cpu is idle is stored into idleTime,
+ *	 and the timing statistics for each process are stored into pStats.
+ */
+void stack(vector<process> p, int & totalTime, int & idleTime, vector<processStats> & pStats)
+{
+	pStats.clear();
+	totalTime = 0;
+	idleTime = 0;
+	deque<processBlock> ready;
+	processBlock cpu;
+	bool running = false;
+	while(running || p.size()+ready.size()>0)
+	{
+		if(!running && ready.size()==0 && totalTime<p[0].arrival)
+		{
+			idleTime++;
+		}
+		else
+		{
+			if(totalTime==p[0].arrival)
+			{
+				if(running)
+				{
+					running = false;
+					ready.push_front(cpu);
+				}
+				int arrive = p[0].arrival;
+				do
+				{
+					processBlock b;
+					b.p = p[0];
+					b.s = processStats();
+					ready.push_front(b);
+					p.erase(p.begin());
+				} while(p.size()>0 && p[0].arrival==arrive);
+			}
+			if(!running)
+			{
+				cpu = ready.front();
+				ready.pop_front();
+				running = true;
+			}
+			for(int i=0; i<ready.size(); i++)
+			{
+				ready[i].s.waiting++;
+				ready[i].s.turnAround++;
+			}
+			cpu.p.burst--;
+			cpu.s.turnAround++;
+			if(cpu.p.burst == 0)
+			{
+				pStats.push_back(cpu.s);
+				running = false;
+			}
+		}		
+		totalTime++;
+	}
+}
+
+/* Function:	addProcessByArrival
+ *    Usage:	vector<process> p 
+				addProcessByArrival(p, ps);
+ * -------------------------------------------
+ * Adds the process in the apporpriate position in the vector, keeps it sorted by arrival time from least to greatest.
+ */
+void addProcessByArrival(process & p,  vector<process> & ps)
+{
+	if(ps.size()==0 || p.arrival >= ps.back().arrival )
+		ps.push_back(p);
+	else 
+	{
+		int i = (int)ps.size()-1;
+		ps.resize(ps.size()+1);
+		do
+		{
+			ps[i+1] = ps[i];
+			i--;
+		} while(i>=0 && p.arrival<ps[i].arrival);
+		ps[i+1] = p;
+	}
+}
+
+/* Function:	addProcessBlockByBurst
+ *    Usage:	deque<processBlock> p 
+				addProcessBlockByBurst(b, bs);
+ * -------------------------------------------
+ * Adds the processBlock in the apporpriate position in the vector, keeps it sorted by the processescpu burst time from least to greatest.
+ */
+void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
+{
+	if(bs.size()==0 || b.p.burst >= bs.back().p.burst )
+		bs.push_back(b);
+	else 
+	{
+		int i = (int)bs.size()-1;
+		bs.resize(bs.size()+1);
+		do
+		{
+			bs[i+1] = bs[i];
+			i--;
+		} while(i>=0 && b.p.burst<bs[i].p.burst);
+		bs[i+1] = b;
+	}
+}
+
+/* Function:	printReport
+ *    Usage:	printReport(opts, pStats, totalTimes, idleTimes);
+ * -------------------------------------------
+ * Prints out the results of multiple cpu scheduling option simulations.
+ * - opts: contains all of the simulated cpu scheduling options
+ * - pStats: a 2d vector where each row contains the processStats for each simulated cpu scheduling option
+ * - totalTimes: contains the total running time for each simulated cpu scheduling option
+ * - idleTimes: contains the cpu idle time for each simulated cpu scheduling option
+ */
+void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
+{
+	int w = 13;
+	int ww = 16;
+	cout << left;
+	cout << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
+	cout << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
+	cout << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
+	cout << "=====================================================" << endl;
+	for(int i=0; i<opts.size(); i++)
+	{
+		int totalTurnAround=0;
+		int totalWaiting=0;
+		for(int j = 0; j<pStats[i].size(); j++)
+		{
+			totalTurnAround += pStats[i][j].turnAround;
+			totalWaiting += pStats[i][j].waiting;
+		}
+		double avgTurnAround = (double)totalTurnAround/pStats[i].size();
+		double avgWaiting = (double)totalWaiting/pStats[i].size();
+		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
+
+		string scheduler = ALGORITHM[opts[i].alg];
+		if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+		if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
+		cout << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
+	}
+}
+
+/* Function:	readInProcesses
+ *    Usage:	vector<process> ps;
+				readInProcess("P.dat", ps);
+ * -------------------------------------------
+ * Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. ps).
+ * Each line of the file must contain two numbers separated by a space:
+ * 		- The first number is the arrival time (in milliseconds),
+ *		- The second number is the amount of time the process requires to complete (in milliseconds)
+ *		eg. "30 2000"
+ */
+void readInProcesses(string filename, vector<process> & ps)
+{
+	ps.clear();
+	ifstream p(filename, fstream::in);
+	string line;
+	while(p.good())
+	{
+		getline(p, line);
+		if(line.length()>0 && isprint(line[0]))
+		{
+			/* if a number doesnt come next, error */
+			if(!isdigit(line[0])) 
+			{
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			process pr;
+			/* save the arrival time */
+			int end;
+			for(end=0; end<line.length() && isdigit(line[end]); end++) {}
+			pr.arrival = stoi(line.substr(0,end));
+			/**/
+			/* if a number doesnt come next, error */
+			if(!isdigit(line[++end])) //skip over the space
+			{
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			/* save the burst time */
+			int firstDigit = end;
+			for(; end<line.length() && isdigit(line[end]); end++) {}
+			pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
+			
+			if(pr.burst==0) //error if the burst is 0
+			{
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Ensure that all process burst times are > 0." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			/* if a something comes next, error */
+			if(end<line.length() && isprint(line[end]))
+			{
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			addProcessByArrival(pr, ps);
+		}
+	}
+	p.close();
+}
+
+/* Function:	readInOptions
+ *    Usage:	vector<option> opts;
+				readInOptions("S.dat", opts);
+ * -------------------------------------------
+ * Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
+ * Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
+ * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR
+ *		- If RR, the integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T)
+ *		- If RRP, the integer pair represents the Time Slice (S), the Priority Time Slice (PS) 
+		  and the Context Switching Time (T). (eg. S/PS/T) 	 
+ *		eg. "FCFS" "RR-100/10" "RRP-100/1000/10"
+ */
+void readInOptions(string filename, vector<option> & opts)
+{
+	opts.clear();
+	ifstream s(filename, fstream::in);
+	string line;
+	while(s.good())
+	{
+		getline(s, line);
+		if(line.length()>0 && isprint(line[0]))
+		{
+			/* if a letter doesnt come next, error */
+			if(!isalpha(line[0]))
+			{
+				cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each line MUST start with a letter." << endl;
+				exit(EXIT_FAILURE);
+			}
+			/**/
+			
+			option opt;
+			/* save the option */
+			int end;
+			for(end=0; end<line.length() && isalpha(line[end]); end++) {}
+			string prospect = line.substr(0,end);
+			for(int i=0; i<NUM_ALGORITHMS; i++)
+			{
+				if(prospect==ALGORITHM[i]) 
+				{
+					opt.alg = (algorithm)i;
+					break;
+				}
+				else if(i==NUM_ALGORITHMS-1)
+				{
+					cerr << "ERROR-- readInOptions: " << filename << " - '"<< prospect << "' is not supported." << endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			/**/
+			/* if RR or RRP and a dash comes next, read in the integer pair*/
+			if((opt.alg==RR || opt.alg==RRP) && end<line.length() && line[end] == '-')
+			{
+				/* if a number doesnt come next, error */
+				if(!isdigit(line[++end]))
+				{
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each dash MUST be followed by a number." << endl;
+					exit(EXIT_FAILURE);
+				}
+				/**/
+				/* save the slice  */
+				int firstDigit = end;
+				for(; end<line.length() && isdigit(line[end]); end++) {}
+				opt.slice = stoi(line.substr(firstDigit, end-firstDigit+1));
+				if(opt.slice==0) // error if the slice is 0
+				{
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Ensure that all RR and RRP time slices are > 0." << endl;
+					exit(EXIT_FAILURE);
+				}
+				/**/
+				/* if a slash and a number dont come next, error */
+				if(line[end++]!='/' && !isdigit(line[end]))
+				{
+					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
+					exit(EXIT_FAILURE);
+				}
+				if(opt.alg==RR)
+				{
+					/**/
+					/* save the switch time */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a something comes next, error */
+					if(end<line.length() && isprint(line[end]))
+					{
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+				}
+				else if(opt.alg==RRP)
+				{
+					/**/
+					/* save the slice priority */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a number doesnt come next, error */
+					if(line[end++]!='/' && !isdigit(line[end]))
+					{
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+					/* save the switch time */
+					firstDigit = end;
+					for(; end<line.length() && isdigit(line[end]); end++) {}
+					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
+					/**/
+					/* if a something comes next, error */
+					if(end<line.length() && isprint(line[end]))
+					{
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
+						exit(EXIT_FAILURE);
+					}
+					/**/
+				}
+			}
+			/* if nothing come next, save the default integer pair*/
+			else if(end>=line.length() || !isprint(line[end]))
+			{
+				opt.slice = 0;
+				opt.switchTime = 0;
+			}
+			/**/
+			else
+			{
+				if(line[end]=='-') cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
+				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
+				exit(EXIT_FAILURE);
+			}
+			opts.push_back(opt);
+		}
+	}
+	s.close();
+}
