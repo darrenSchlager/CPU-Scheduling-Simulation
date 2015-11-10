@@ -557,7 +557,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[0])) 
 			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two positive numbers separated by a single space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -570,7 +570,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[++end])) //skip over the space
 			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two numbers separated by a space." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two positive numbers separated by a single space." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -588,7 +588,7 @@ void readInProcesses(string filename, vector<process> & ps)
 			/* if a something comes next, error */
 			if(end<line.length() && isprint(line[end]))
 			{
-				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST only contain two numbers separated by a space. No lagging spaces." << endl;
+				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST only contain two numbers separated by a single space. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
@@ -668,9 +668,10 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 				/**/
 				/* if a slash and a number dont come next, error */
-				if(line[end++]!='/' && !isdigit(line[end]))
+				if(line[end]!='/' || (line[end++]=='/' && !isdigit(line[end])) )
 				{
-					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers separated by a slash." << endl;
+					if(opt.alg==RR) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers each separated by a slash." << endl;
+					else if(opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
 					exit(EXIT_FAILURE);
 				}
 				if(opt.alg==RR)
@@ -684,7 +685,7 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RR, there MUST only be two numbers separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST only be two numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -698,7 +699,7 @@ void readInOptions(string filename, vector<option> & opts)
 					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
 					/* if a number doesnt come next, error */
-					if(line[end++]!='/' && !isdigit(line[end]))
+					if(line[end]!='/' || (line[end++]=='/' && !isdigit(line[end])) )
 					{
 						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
@@ -712,14 +713,14 @@ void readInOptions(string filename, vector<option> & opts)
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each slash MUST be followed by a number. For RRP, there MUST only be three numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST only be three numbers each separated by a slash." << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
 				}
 			}
 			/* if nothing come next, save the default integer pair*/
-			else if(end>=line.length() || !isprint(line[end]))
+			else if(opt.alg!=RR && opt.alg!=RRP && (end>=line.length() || !isprint(line[end])))
 			{
 				opt.slice = 0;
 				opt.switchTime = 0;
@@ -728,6 +729,7 @@ void readInOptions(string filename, vector<option> & opts)
 			else
 			{
 				if(line[end]=='-') cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
+				else if(opt.alg==RR || opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - RR and RRP must be followed by a dash and the appropriate modifiers (eg. RR-50/5 , RRP-50/10/5)." << endl;
 				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
 				exit(EXIT_FAILURE);
 			}
