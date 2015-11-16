@@ -554,8 +554,10 @@ void readInProcesses(string filename, vector<process> & ps)
 		getline(p, line);
 		if(line.length()>0 && isprint(line[0]))
 		{
+			int end = 0;
+			while(isblank(line[end])) end++;
 			/* if a number doesnt come next, error */
-			if(!isdigit(line[0])) 
+			if(!isdigit(line[end])) 
 			{
 				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two positive numbers separated by a single space." << endl;
 				exit(EXIT_FAILURE);
@@ -563,12 +565,12 @@ void readInProcesses(string filename, vector<process> & ps)
 			/**/
 			process pr;
 			/* save the arrival time */
-			int end;
-			for(end=0; end<line.length() && isdigit(line[end]); end++) {}
+			for(; end<line.length() && isdigit(line[end]); end++) {}
 			pr.arrival = stoi(line.substr(0,end));
 			/**/
+			while(isblank(line[end])) end++;
 			/* if a number doesnt come next, error */
-			if(!isdigit(line[++end])) //skip over the space
+			if(!isdigit(line[end]))
 			{
 				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Each line MUST contain two positive numbers separated by a single space." << endl;
 				exit(EXIT_FAILURE);
@@ -585,6 +587,7 @@ void readInProcesses(string filename, vector<process> & ps)
 				exit(EXIT_FAILURE);
 			}
 			/**/
+			while(end<line.length() && isblank(line[end])) end++;
 			/* if a something comes next, error */
 			if(end<line.length() && isprint(line[end]))
 			{
@@ -620,8 +623,10 @@ void readInOptions(string filename, vector<option> & opts)
 		getline(s, line);
 		if(line.length()>0 && isprint(line[0]))
 		{
+			int end = 0;
+			while(isblank(line[end])) end++;
 			/* if a letter doesnt come next, error */
-			if(!isalpha(line[0]))
+			if(!isalpha(line[end]))
 			{
 				cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each line MUST start with a letter." << endl;
 				exit(EXIT_FAILURE);
@@ -630,9 +635,9 @@ void readInOptions(string filename, vector<option> & opts)
 			
 			option opt;
 			/* save the option */
-			int end;
-			for(end=0; end<line.length() && isalpha(line[end]); end++) {}
-			string prospect = line.substr(0,end);
+			int start = end;
+			for(; end<line.length() && isalpha(line[end]); end++) {}
+			string prospect = line.substr(start,end-start);
 			for(int i=0; i<NUM_ALGORITHMS; i++)
 			{
 				if(prospect==ALGORITHM[i]) 
@@ -647,11 +652,14 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
+			while(isblank(line[end])) end++;
 			/* if RR or RRP and a dash comes next, read in the integer pair*/
 			if((opt.alg==RR || opt.alg==RRP) && end<line.length() && line[end] == '-')
 			{
+				end++;
+				while(isblank(line[end])) end++;
 				/* if a number doesnt come next, error */
-				if(!isdigit(line[++end]))
+				if(!isdigit(line[end]))
 				{
 					cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Each dash MUST be followed by a number." << endl;
 					exit(EXIT_FAILURE);
@@ -667,11 +675,14 @@ void readInOptions(string filename, vector<option> & opts)
 					exit(EXIT_FAILURE);
 				}
 				/**/
+				while(isblank(line[end])) end++;
 				/* if a slash and a number dont come next, error */
-				if(line[end]!='/' || (line[end++]=='/' && !isdigit(line[end])) )
+				int slashLoc = end++;
+				while(isblank(line[end])) end++;
+				if(line[slashLoc]!='/' || !isdigit(line[end]))
 				{
-					if(opt.alg==RR) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers each separated by a slash." << endl;
-					else if(opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
+					if(opt.alg==RR) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers each separated by a slash ( TimeSlice/ContextSwitchTime )" << endl;
+					else if(opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash ( TimeSlice/PriorityTimeSlice/ContextSwitchTime )" << endl;
 					exit(EXIT_FAILURE);
 				}
 				if(opt.alg==RR)
@@ -682,10 +693,11 @@ void readInOptions(string filename, vector<option> & opts)
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
+					while(end<line.length() && isblank(line[end])) end++;
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST only be two numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST only be two numbers each separated by a slash ( TimeSlice/ContextSwitchTime )" << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -693,15 +705,18 @@ void readInOptions(string filename, vector<option> & opts)
 				else if(opt.alg==RRP)
 				{
 					/**/
-					/* save the slice priority */
+					/* save the priority slice */
 					firstDigit = end;
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
-					/* if a number doesnt come next, error */
-					if(line[end]!='/' || (line[end++]=='/' && !isdigit(line[end])) )
+					while(isblank(line[end])) end++;
+					/* if a slash and a number dont come next, error */
+					slashLoc = end++;
+					while(isblank(line[end])) end++;
+					if(line[slashLoc]!='/' || !isdigit(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash ( TimeSlice/PriorityTimeSlice/ContextSwitchTime )" << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -710,10 +725,11 @@ void readInOptions(string filename, vector<option> & opts)
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
+					while(end<line.length() && isblank(line[end])) end++;
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
-						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST only be three numbers each separated by a slash." << endl;
+						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST only be three numbers each separated by a slash ( TimeSlice/PriorityTimeSlice/ContextSwitchTime )" << endl;
 						exit(EXIT_FAILURE);
 					}
 					/**/
@@ -729,8 +745,8 @@ void readInOptions(string filename, vector<option> & opts)
 			else
 			{
 				if(line[end]=='-') cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - Only RR and RRP support '-' modifiers." << endl;
-				else if(opt.alg==RR || opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - RR and RRP must be followed by a dash and the appropriate modifiers (eg. RR-50/5 , RRP-50/10/5)." << endl;
-				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry. No lagging spaces." << endl;
+				else if(opt.alg==RR || opt.alg==RRP) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - RR and RRP must be followed by a dash and the appropriate modifiers (eg. RR-TimeSlice/ContextSwitchTime , RRP-TimeSlice/PriorityTimeSlice/ContextSwitchTime)." << endl;
+				else cerr << "ERROR-- readInOptions: S.dat '"<< line << "' - Ensure that each line ONLY contains a single valid entry." << endl;
 				exit(EXIT_FAILURE);
 			}
 			opts.push_back(opt);
