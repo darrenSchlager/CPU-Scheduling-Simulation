@@ -507,31 +507,55 @@ void addNewArrivalsInOrder(vector<process> & ps, deque<processBlock> & ready)
  */
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
 {
+	stringstream ss;
 	int w = 13;
-	int ww = 16;
-	cout << left;
-	cout << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
-	cout << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
-	cout << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
-	cout << "=====================================================" << endl;
-	for(int i=0; i<opts.size(); i++)
+	int ww = 13;
+	bool toLong = false;
+	do 
 	{
-		int totalTurnAround=0;
-		int totalWaiting=0;
-		for(int j = 0; j<pStats[i].size(); j++)
+		ss.str("");
+		toLong = false;
+		
+		ss << left;
+		ss << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
+		ss << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
+		ss << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
+		for(int i=0; i<ww+w+w+w-2; i++) ss << "=";
+		ss << endl;
+		for(int i=0; i<opts.size(); i++)
 		{
-			totalTurnAround += pStats[i][j].turnAround;
-			totalWaiting += pStats[i][j].waiting;
-		}
-		double avgTurnAround = (double)totalTurnAround/pStats[i].size();
-		double avgWaiting = (double)totalWaiting/pStats[i].size();
-		double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
+			int totalTurnAround=0;
+			int totalWaiting=0;
+			for(int j = 0; j<pStats[i].size(); j++)
+			{
+				totalTurnAround += pStats[i][j].turnAround;
+				totalWaiting += pStats[i][j].waiting;
+			}
+			double avgTurnAround = (double)totalTurnAround/pStats[i].size();
+			double avgWaiting = (double)totalWaiting/pStats[i].size();
+			double cpuUtilization = ( (totalTimes[i]-idleTimes[i])/(double)totalTimes[i] ) * 100;
 
-		string scheduler = ALGORITHM[opts[i].alg];
-		if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
-		if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
-		cout << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
+			string scheduler = ALGORITHM[opts[i].alg];
+			if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
+			if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
+			if(scheduler.length()+2>ww)
+			{
+				toLong=true;
+				break;
+			}
+			ss << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
+		}
+		ww++;
+	} while(toLong);
+	
+	string output;
+	while(!ss.eof())
+	{
+		string temp;
+		getline(ss, temp);
+		output += (temp+"\n");
 	}
+	cout << output;
 }
 
 /* Function:	readInProcesses
