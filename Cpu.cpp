@@ -90,16 +90,16 @@ int main(int argc, char *argv[])
 }
 
 /* Function:	fcfs
-				int totalTime;
-				int idleTime
-				vector<processStats> pStats;
- *    Usage:	fcfs(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the FCFS scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
+ *    Usage:	int totalTime;
+ *				int idleTime
+ *				vector<processStats> pStats;
+ *    			fcfs(ps, totalTime, idleTime, pStats);
+ *  -------------------------------------------
+ *  Runs a simulation of the FCFS scheduling algorithm. 
+ *  - ps: contains the processes to schedule and execute
+ *  - totalTime: set to equal the total time of execution
+ *  - idleTime: set to equal the total time the cpu is idle
+ *  - pStats: set to contain the timing statistics for each process
  */
 void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -111,50 +111,61 @@ void fcfs(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 	bool running = false;
 	while(running || ps.size()+ready.size()>0)
 	{
+		/* there are no processes currently in the system */
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
+			totalTime++;
 		}
+		/**/
 		else
 		{
+			/* add any arriving processes to the end of the ready queue */
 			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
+			/**/
+			/* if the cpu is idle, move the next process in the ready queue onto the cpu for running */
 			if(!running)
 			{
 				cpu = ready.front();
 				ready.pop_front();
 				running = true;
 			}
+			/**/
+			/* increment times for processes in the ready queue */
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
+			/**/
+			/* run the current process 1 time unit */
 			cpu.p.burst--;
 			cpu.s.turnAround++;
-			if(cpu.p.burst == 0)
+			totalTime++;
+			if(cpu.p.burst == 0) //if the process is finished, save its timing stats
 			{
 				pStats.push_back(cpu.s);
 				running = false;
 			}
+			/**/
 		}		
-		totalTime++;
 	}
 }
 
 /* Function:	npsjf
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	npsjf(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the NPSJF scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
+ *    Usage:	int totalTime;
+ *				int idleTime;
+ *				vector<processStats> pStats;
+ *   			npsjf(ps, totalTime, idleTime, pStats);
+ *  -------------------------------------------
+ *  Runs a simulation of the NPSJF scheduling algorithm. 
+ *  - ps: contains the processes to schedule and execute
+ *  - totalTime: set to equal the total time of execution
+ *  - idleTime: set to equal the total time the cpu is idle
+ *  - pStats: set to contain the timing statistics for each process
  */
 void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -166,50 +177,61 @@ void npsjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSt
 	bool running = false;
 	while(running || ps.size()+ready.size()>0)
 	{
+		/* there are no processes currently in the system */
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
+			totalTime++;
 		}
+		/**/
 		else
 		{
+			/* add any arriving processes to the appropriate position in the ready queue*/
 			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivalsInOrder(ps, ready);
 			}
+			/**/
+			/* if the cpu is idle, move the next process in the ready queue onto the cpu for running */
 			if(!running)
 			{
 				cpu = ready.front();
 				ready.pop_front();
 				running = true;
 			}
+			/**/
+			/* increment times for processes in the ready queue*/
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
+			/**/
+			/* run the current process for 1 time unit */
 			cpu.p.burst--;
 			cpu.s.turnAround++;
-			if(cpu.p.burst==0)
+			totalTime++;
+			if(cpu.p.burst==0) //if the process is finished, save its timing stats
 			{
 				pStats.push_back(cpu.s);
 				running = false;
 			}
+			/**/
 		}
-		totalTime++;
 	}
 }
 
 /* Function:	psjf
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	psjf(ps, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the PSJF scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
+ *    Usage:	int totalTime;
+ *				int idleTime;
+ *				vector<processStats> pStats;
+ *    			psjf(ps, totalTime, idleTime, pStats);
+ *  -------------------------------------------
+ *  Runs a simulation of the PSJF scheduling algorithm. 
+ *  - ps: contains the processes to schedule and execute
+ *  - totalTime: set to equal the total time of execution
+ *  - idleTime: set to equal the total time the cpu is idle
+ *  - pStats: set to contain the timing statistics for each process
  */
 void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -221,59 +243,72 @@ void psjf(vector<process> ps, int & totalTime, int & idleTime, vector<processSta
 	bool running = false;
 	while(running || ps.size()+ready.size()>0)
 	{
+		/* there are no processes currently in the system */
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
+			totalTime++;
 		}
+		/**/
 		else
 		{
+			/* add any arriving processes to the appropriate position in the ready queue*/
 			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivalsInOrder(ps, ready);
+				/* preempt the current process if a new arrival has a shorter burst */
 				if(running && cpu.p.burst>ready[0].p.burst)
 				{
 					addProcessBlockByBurst(cpu, ready);
 					cpu = ready.front();
 					ready.pop_front();
 				}
+				/**/
 			}
+			/**/
+			/* if the cpu is idle, move the next process in the ready queue onto the cpu for running */
 			if(!running)
 			{
 				cpu = ready.front();
 				ready.pop_front();
 				running = true;
 			}
+			/**/
+			/* increment times for processes in the ready queue*/
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
+			/**/
+			/* run the current process for 1 time unit */
 			cpu.p.burst--;
 			cpu.s.turnAround++;
-			if(cpu.p.burst == 0)
+			totalTime++;
+			if(cpu.p.burst == 0) //if the process is finished, save its timing stats
 			{
 				pStats.push_back(cpu.s);
 				running = false;
 			}
+			/**/
 		}		
-		totalTime++;
 	}
 }
 
 /* Function:	rr
-				int switchTime;
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	rr(ps, slice, switchTime, totalTime, idleTime, pStats);
- * -------------------------------------------
- * Runs a simulation of the RR scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - slice: the time quantum each process receives
- * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
+ *    Usage:	int switchTime;
+ *				int totalTime;
+ *				int idleTime;
+ *				vector<processStats> pStats;
+ *    			rr(ps, slice, switchTime, totalTime, idleTime, pStats);
+ *  -------------------------------------------
+ *  Runs a simulation of the RR scheduling algorithm. 
+ *  - ps: contains the processes to schedule and execute
+ *  - slice: the time quantum each process receives
+ *  - switchTime: the time it takes to switch processes
+ *  - totalTime: set to equal the total time of execution
+ *  - idleTime: set to equal the total time the cpu is idle
+ *  - pStats: set to contain the timing statistics for each process
  */
 void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -286,19 +321,26 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 	bool running = false;
 	while(running || ps.size()+ready.size()>0)
 	{
+		/* there are no processes currently in the system */
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 			totalTime++;
 		}
+		/**/
 		else
 		{
+			/* add any arriving processes to the end of the ready queue */
 			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
+			/**/
+			/* if the cpu is idle, move the next process in the ready queue onto the cpu for running */
 			if(!running)
 			{
+				/* increment times by the context switch time; 
+				 * it is assumed that context switch time only applies when swapping in*/
 				for(int i=0; i<switchTime; i++)
 				{
 					for(int i=0; i<ready.size(); i++)
@@ -308,32 +350,40 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 					}
 					idleTime++;
 					totalTime++;
+					/* add any arriving processes to the end of the ready queue */
 					if(ps.size()>0 && totalTime==ps[0].arrival)
 					{
 						addNewArrivals(ps, ready);
 					}
+					/**/
 				}
+				/**/
 				cpu = ready.front();
 				ready.pop_front();
 				running = true;
 				timeRunning = 0;
 			}
+			/**/
+			/* increment times for processes in the ready queue*/
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
+			/**/
+			/* run the current process for 1 time unit */
 			cpu.p.burst--;
 			cpu.s.turnAround++;
 			timeRunning++;
 			totalTime++;
-			if(cpu.p.burst==0)
+			if(cpu.p.burst==0) //if the process is finished, save its timing stats
 			{	
 				pStats.push_back(cpu.s);
 				running=false;
 			}
-			else if(timeRunning==slice)
+			else if(timeRunning==slice) //if the process has used up its time slice, preempt it
 			{
+				//add any arriving processes to the end of the ready queue ahead of the preempted process
 				if(ps.size()>0 && totalTime==ps[0].arrival)
 				{
 					addNewArrivals(ps, ready);
@@ -341,25 +391,26 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 				ready.push_back(cpu);
 				running = false;
 			}
+			/**/
 		}
 	}
 }
 
 /* Function:	rrp
-				int switchTime;
-				int totalTime;
-				int idleTime;
-				vector<processStats> pStats;
- *    Usage:	rrp(ps, slice, int prioritySlice, switchTime, totalTime, idleTime, pStats);
+ *    Usage:	int switchTime;
+ *				int totalTime;
+ *				int idleTime;
+ *				vector<processStats> pStats;
+ *    			rrp(ps, slice, int prioritySlice, switchTime, totalTime, idleTime, pStats);
  * -------------------------------------------
- * Runs a simulation of the RRP (round robin priority) scheduling algorithm. 
- * - ps: contains the processes to schedule and execute
- * - slice: the time quantum each process receives
- * - prioritySlice: if a process has burst<prioritySlice, it runs to completion
- * - switchTime: the time it takes to switch processes
- * - The total time of execution is stored into totalTime, 
- *	 the total time the cpu is idle is stored into idleTime,
- *	 and the timing statistics for each process are stored into pStats.
+ *  Runs a simulation of the RRP (round robin priority) scheduling algorithm. 
+ *  - ps: contains the processes to schedule and execute
+ *  - slice: the time quantum each process receives
+ *  - prioritySlice: if a process has burst<prioritySlice, it runs to completion
+ *  - switchTime: the time it takes to switch processes
+ *  - totalTime: set to equal the total time of execution
+ *  - idleTime: set to equal the total time the cpu is idle
+ *  - pStats: set to contain the timing statistics for each process
  */
 void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int & totalTime, int & idleTime, vector<processStats> & pStats)
 {
@@ -373,19 +424,26 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 	int currentSlice = slice;
 	while(running || ps.size()+ready.size()>0)
 	{
+		/* there are no processes currently in the system */
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
 			totalTime++;
 		}
+		/**/
 		else
 		{
+			/* add any arriving processes to the end of the ready queue */
 			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
+			/**/
+			/* if the cpu is idle, move the next process in the ready queue onto the cpu for running */
 			if(!running)
 			{
+				/* increment times by the context switch time; 
+				 * it is assumed that context switch time only applies when swapping in*/
 				for(int i=0; i<switchTime; i++)
 				{
 					for(int i=0; i<ready.size(); i++)
@@ -395,34 +453,44 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 					}
 					idleTime++;
 					totalTime++;
+					/* add any arriving processes to the end of the ready queue */
 					if(ps.size()>0 && totalTime==ps[0].arrival)
 					{
 						addNewArrivals(ps, ready);
 					}
+					/**/
 				}
+				/**/
 				cpu = ready.front();
 				ready.pop_front();
 				running = true;
 				timeRunning = 0;
+				/* give the process priority if it is eligible */
 				if(cpu.p.burst <= prioritySlice) currentSlice=cpu.p.burst;
 				else currentSlice = slice;
+				/**/
 			}
+			/**/
+			/* increment times for processes in the ready queue*/
 			for(int i=0; i<ready.size(); i++)
 			{
 				ready[i].s.waiting++;
 				ready[i].s.turnAround++;
 			}
+			/**/
+			/* run the current process for 1 time unit */
 			cpu.p.burst--;
 			cpu.s.turnAround++;
 			timeRunning++;
 			totalTime++;
-			if(cpu.p.burst==0)
+			if(cpu.p.burst==0) //if the process is finished, save its timing stats
 			{	
 				pStats.push_back(cpu.s);
 				running=false;
 			}
-			else if(timeRunning==currentSlice)
+			else if(timeRunning==currentSlice) //if the process has used up its time slice, preempt it
 			{
+				//add any arriving processes to the end of the ready queue ahead of the preempted process
 				if(ps.size()>0 && totalTime==ps[0].arrival)
 				{
 					addNewArrivals(ps, ready);
@@ -430,15 +498,17 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 				ready.push_back(cpu);
 				running = false;
 			}
+			/**/
 		}
 	}
 }
 
 /* Function:	addProcessByArrival
  *    Usage:	vector<process> ps 
-				addProcessByArrival(p, ps);
+ *				addProcessByArrival(p, ps);
  * -------------------------------------------
- * Adds the process in the apporpriate position in the vector, keeps it sorted by arrival time from least to greatest.
+ * Adds the process in the apporpriate position in the vector, 
+ * keeps it sorted by arrival time from least to greatest.
  */
 void addProcessByArrival(process & p,  vector<process> & ps)
 {
@@ -459,9 +529,10 @@ void addProcessByArrival(process & p,  vector<process> & ps)
 
 /* Function:	addProcessBlockByBurst
  *    Usage:	deque<processBlock> p 
-				addProcessBlockByBurst(b, bs);
- * -------------------------------------------
- * Adds the processBlock in the apporpriate position in the vector, keeps it sorted by the processescpu burst time from least to greatest.
+ *				addProcessBlockByBurst(b, bs);
+ *  -------------------------------------------
+ *  Adds the processBlock in the apporpriate position in the vector, 
+ *  keeps it sorted by the processescpu burst time from least to greatest.
  */
 void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
 {
@@ -482,10 +553,10 @@ void addProcessBlockByBurst(processBlock & b, deque<processBlock> & bs)
 
 /* Function:	addNewArrivals
  *    Usage:	deque<processBlock> bs
- addNewArrivals(ps, ready);
- * -------------------------------------------
- * For all processes in 'ps' that have the same arrival time as 'ps[0]', a new 'processBlock' is created, initialized,
- * and inserted at the end of 'ready'.
+ *				addNewArrivals(ps, ready);
+ *  -------------------------------------------
+ *  For all processes in 'ps' that have the same arrival time as 'ps[0]', 
+ *  a new 'processBlock' is created, initialized, and inserted at the end of 'ready'.
  */
 void addNewArrivals(vector<process> & ps, deque<processBlock> & ready)
 {
@@ -502,10 +573,10 @@ void addNewArrivals(vector<process> & ps, deque<processBlock> & ready)
 
 /* Function:	addNewArrivalsInOrder
  *    Usage:	deque<processBlock> bs
- addNewArrivalsInOrder(ps, ready);
- * -------------------------------------------
- * For all processes in 'ps' that have the same arrival time as 'ps[0]', a new 'processBlock' is created, initialized,
- * and inserted at the correct position in 'ready'.
+ *				addNewArrivalsInOrder(ps, ready);
+ *  -------------------------------------------
+ *  For all processes in 'ps' that have the same arrival time as 'ps[0]', 
+ *  a new 'processBlock' is created, initialized, and inserted at the correct position in 'ready'.
  */
 void addNewArrivalsInOrder(vector<process> & ps, deque<processBlock> & ready)
 {
@@ -522,19 +593,19 @@ void addNewArrivalsInOrder(vector<process> & ps, deque<processBlock> & ready)
 
 /* Function:	printReport
  *    Usage:	printReport(opts, pStats, totalTimes, idleTimes);
- * -------------------------------------------
- * Prints out the results of multiple cpu scheduling option simulations.
- * - opts: contains all of the simulated cpu scheduling options
- * - pStats: a 2d vector where each row contains the processStats for each simulated cpu scheduling option
- * - totalTimes: contains the total running time for each simulated cpu scheduling option
- * - idleTimes: contains the cpu idle time for each simulated cpu scheduling option
+ *  -------------------------------------------
+ *  Prints out the results of multiple cpu scheduling option simulations.
+ *  - opts: contains all of the simulated cpu scheduling options
+ *  - pStats: a 2d vector where each row contains the processStats for each simulated cpu scheduling option
+ *  - totalTimes: contains the total running time for each simulated cpu scheduling option
+ *  - idleTimes: contains the cpu idle time for each simulated cpu scheduling option
  */
 void printReport(const vector<option> & opts, const vector< vector<processStats> > & pStats, const vector<int> & totalTimes, const vector<int> & idleTimes)
 {
 	stringstream ss;
-	int w = 13;
-	int ww = 13;
-	bool toLong = false;
+	int w = 13; //static column width
+	int ww = 13; //dynamic column width (Scheduler is the dynamic column)
+	bool toLong; //is the text to long for the dynamic column
 	do 
 	{
 		ss.str("");
@@ -544,8 +615,9 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		ss << setw(ww) << "" << setw(w) << "Average" << setw(w) << "Average" << setw(w) << "CPU" << endl;
 		ss << setw(ww) << "" << setw(w) << "Turnaround" << setw(w) << "CPU Waiting" << setw(w) << "Utilization" << endl;
 		ss << setw(ww) << "Scheduler" << setw(w) << "Time" << setw(w) << "Time" << setw(w) << "%" << endl;
-		for(int i=0; i<ww+w+w+w-2; i++) ss << "=";
+		for(int i=0; i<ww+w+w+w-2; i++) ss << "="; //insert a line of the appropriate length
 		ss << endl;
+		/* process the results for each scheduling option */
 		for(int i=0; i<opts.size(); i++)
 		{
 			int totalTurnAround=0;
@@ -562,16 +634,19 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 			string scheduler = ALGORITHM[opts[i].alg];
 			if(opts[i].alg==RR) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].switchTime);
 			if(opts[i].alg==RRP) scheduler += "-" + to_string(opts[i].slice) + "/" + to_string(opts[i].prioritySlice) + "/" + to_string(opts[i].switchTime);
+			/*  determine if the text is to long for the dynamic column */
 			if(scheduler.length()+2>ww)
 			{
 				toLong=true;
 				break;
 			}
+			/**/
 			ss << fixed << setprecision(2) << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 		}
-		ww++;
+		/**/
+		ww++; //increase the width of the dynamic column
 	} while(toLong);
-	
+	/* output to the console */
 	string output;
 	while(!ss.eof())
 	{
@@ -580,14 +655,15 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 		output += (temp+"\n");
 	}
 	cout << output;
+	/**/
 }
 
 /* Function:	readInProcesses
  *    Usage:	vector<process> ps;
 				readInProcess("P.dat", ps);
- * -------------------------------------------
- * Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. ps).
- * Each line of the file must contain two numbers separated by a space:
+ *  -------------------------------------------
+ *  Saves the data in a formatted file (eg. "P.dat") into a vector of processes (eg. ps).
+ *  Each line of the file must contain two numbers separated by a space:
  * 		- The first number is the arrival time (in milliseconds),
  *		- The second number is the amount of time the process requires to complete (in milliseconds)
  *		eg. "30 2000"
@@ -602,8 +678,11 @@ void readInProcesses(string filename, vector<process> & ps)
 		getline(p, line);
 		if(line.length()>0 && isprint(line[0]))
 		{
-			int end = 0;
+			int end = 0; //holds the current position in the line
+			process pr; //holds the input
+			/* skip whitespace */
 			while(isblank(line[end])) end++;
+			/**/
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[end])) 
 			{
@@ -611,12 +690,13 @@ void readInProcesses(string filename, vector<process> & ps)
 				exit(EXIT_FAILURE);
 			}
 			/**/
-			process pr;
 			/* save the arrival time */
 			for(; end<line.length() && isdigit(line[end]); end++) {}
 			pr.arrival = stoi(line.substr(0,end));
 			/**/
+			/* skip whitespace */
 			while(isblank(line[end])) end++;
+			/**/
 			/* if a number doesnt come next, error */
 			if(!isdigit(line[end]))
 			{
@@ -628,14 +708,16 @@ void readInProcesses(string filename, vector<process> & ps)
 			int firstDigit = end;
 			for(; end<line.length() && isdigit(line[end]); end++) {}
 			pr.burst = stoi(line.substr(firstDigit, end-firstDigit+1));
-			
+	
 			if(pr.burst==0) //error if the burst is 0
 			{
 				cerr << "ERROR-- readInProcesses: " << filename << " '"<< line << "' - Ensure that all process burst times are > 0." << endl;
 				exit(EXIT_FAILURE);
 			}
 			/**/
-			while(end<line.length() && isblank(line[end])) end++;
+			/* skip whitespace */
+			while(isblank(line[end])) end++;
+			/**/
 			/* if a something comes next, error */
 			if(end<line.length() && isprint(line[end]))
 			{
@@ -652,9 +734,9 @@ void readInProcesses(string filename, vector<process> & ps)
 /* Function:	readInOptions
  *    Usage:	vector<option> opts;
 				readInOptions("S.dat", opts);
- * -------------------------------------------
- * Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
- * Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
+ *  -------------------------------------------
+ *  Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
+ *  Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
  * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR, RRP
  *		- If RR, the integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T)
  *		- If RRP, the integer pair represents the Time Slice (S), the Priority Time Slice (PS) 
@@ -671,8 +753,11 @@ void readInOptions(string filename, vector<option> & opts)
 		getline(s, line);
 		if(line.length()>0 && isprint(line[0]))
 		{
-			int end = 0;
+			int end = 0; //holds the current position in the line
+			option opt; //holds the input
+			/* skip whitespace */
 			while(isblank(line[end])) end++;
+			/**/
 			/* if a letter doesnt come next, error */
 			if(!isalpha(line[end]))
 			{
@@ -680,8 +765,6 @@ void readInOptions(string filename, vector<option> & opts)
 				exit(EXIT_FAILURE);
 			}
 			/**/
-			
-			option opt;
 			/* save the option */
 			int start = end;
 			for(; end<line.length() && isalpha(line[end]); end++) {}
@@ -700,12 +783,16 @@ void readInOptions(string filename, vector<option> & opts)
 				}
 			}
 			/**/
+			/* skip whitespace */
 			while(isblank(line[end])) end++;
+			/**/
 			/* if RR or RRP and a dash comes next, read in the integer pair*/
 			if((opt.alg==RR || opt.alg==RRP) && end<line.length() && line[end] == '-')
 			{
 				end++;
+				/* skip whitespace */
 				while(isblank(line[end])) end++;
+				/**/
 				/* if a number doesnt come next, error */
 				if(!isdigit(line[end]))
 				{
@@ -723,10 +810,14 @@ void readInOptions(string filename, vector<option> & opts)
 					exit(EXIT_FAILURE);
 				}
 				/**/
+				/* skip whitespace */
 				while(isblank(line[end])) end++;
+				/**/
 				/* if a slash and a number dont come next, error */
 				int slashLoc = end++;
+				/* skip whitespace */
 				while(isblank(line[end])) end++;
+				/**/
 				if(line[slashLoc]!='/' || !isdigit(line[end]))
 				{
 					if(opt.alg==RR) cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RR, there MUST be two numbers each separated by a slash ( TimeSlice/ContextSwitchTime )" << endl;
@@ -741,7 +832,9 @@ void readInOptions(string filename, vector<option> & opts)
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
-					while(end<line.length() && isblank(line[end])) end++;
+					/* skip whitespace */
+					while(isblank(line[end])) end++;
+					/**/
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
@@ -758,10 +851,14 @@ void readInOptions(string filename, vector<option> & opts)
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.prioritySlice = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
+					/* skip whitespace */
 					while(isblank(line[end])) end++;
+					/**/
 					/* if a slash and a number dont come next, error */
 					slashLoc = end++;
+					/* skip whitespace */
 					while(isblank(line[end])) end++;
+					/**/
 					if(line[slashLoc]!='/' || !isdigit(line[end]))
 					{
 						cerr << "ERROR-- readInOptions: " << filename << " '"<< line << "' - For RRP, there MUST be three numbers each separated by a slash ( TimeSlice/PriorityTimeSlice/ContextSwitchTime )" << endl;
@@ -773,7 +870,9 @@ void readInOptions(string filename, vector<option> & opts)
 					for(; end<line.length() && isdigit(line[end]); end++) {}
 					opt.switchTime = stoi(line.substr(firstDigit, end-firstDigit+1));
 					/**/
-					while(end<line.length() && isblank(line[end])) end++;
+					/* skip whitespace */
+					while(isblank(line[end])) end++;
+					/**/
 					/* if a something comes next, error */
 					if(end<line.length() && isprint(line[end]))
 					{
