@@ -289,21 +289,29 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
+			totalTime++;
 		}
 		else
 		{
-			while(ps.size()>0 && totalTime>=ps[0].arrival)
+			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
 			if(!running)
 			{
-				idleTime += switchTime;
-				totalTime += switchTime;
-				for(int i=0; i<ready.size(); i++)
+				for(int i=0; i<switchTime; i++)
 				{
-					ready[i].s.waiting += switchTime;
-					ready[i].s.turnAround += switchTime;
+					for(int i=0; i<ready.size(); i++)
+					{
+						ready[i].s.waiting++;
+						ready[i].s.turnAround++;
+					}
+					idleTime++;
+					totalTime++;
+					if(ps.size()>0 && totalTime==ps[0].arrival)
+					{
+						addNewArrivals(ps, ready);
+					}
 				}
 				cpu = ready.front();
 				ready.pop_front();
@@ -318,6 +326,7 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 			cpu.p.burst--;
 			cpu.s.turnAround++;
 			timeRunning++;
+			totalTime++;
 			if(cpu.p.burst==0)
 			{	
 				pStats.push_back(cpu.s);
@@ -325,11 +334,14 @@ void rr(vector<process> ps, int slice, int switchTime, int & totalTime, int & id
 			}
 			else if(timeRunning==slice)
 			{
+				if(ps.size()>0 && totalTime==ps[0].arrival)
+				{
+					addNewArrivals(ps, ready);
+				}
 				ready.push_back(cpu);
 				running = false;
 			}
 		}
-		totalTime++;
 	}
 }
 
@@ -364,21 +376,29 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 		if(!running && ready.size()==0 && totalTime<ps[0].arrival)
 		{
 			idleTime++;
+			totalTime++;
 		}
 		else
 		{
-			while(ps.size()>0 && totalTime>=ps[0].arrival)
+			if(ps.size()>0 && totalTime==ps[0].arrival)
 			{
 				addNewArrivals(ps, ready);
 			}
 			if(!running)
 			{
-				idleTime += switchTime;
-				totalTime += switchTime;
-				for(int i=0; i<ready.size(); i++)
+				for(int i=0; i<switchTime; i++)
 				{
-					ready[i].s.waiting += switchTime;
-					ready[i].s.turnAround += switchTime;
+					for(int i=0; i<ready.size(); i++)
+					{
+						ready[i].s.waiting++;
+						ready[i].s.turnAround++;
+					}
+					idleTime++;
+					totalTime++;
+					if(ps.size()>0 && totalTime==ps[0].arrival)
+					{
+						addNewArrivals(ps, ready);
+					}
 				}
 				cpu = ready.front();
 				ready.pop_front();
@@ -395,6 +415,7 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 			cpu.p.burst--;
 			cpu.s.turnAround++;
 			timeRunning++;
+			totalTime++;
 			if(cpu.p.burst==0)
 			{	
 				pStats.push_back(cpu.s);
@@ -402,11 +423,14 @@ void rrp(vector<process> ps, int slice, int prioritySlice, int switchTime, int &
 			}
 			else if(timeRunning==currentSlice)
 			{
+				if(ps.size()>0 && totalTime==ps[0].arrival)
+				{
+					addNewArrivals(ps, ready);
+				}
 				ready.push_back(cpu);
 				running = false;
 			}
 		}
-		totalTime++;
 	}
 }
 
@@ -543,7 +567,7 @@ void printReport(const vector<option> & opts, const vector< vector<processStats>
 				toLong=true;
 				break;
 			}
-			ss << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
+			ss << fixed << setprecision(2) << setw(ww) << scheduler << setw(w) << avgTurnAround << setw(w) << avgWaiting << cpuUtilization << endl; 
 		}
 		ww++;
 	} while(toLong);
@@ -631,7 +655,7 @@ void readInProcesses(string filename, vector<process> & ps)
  * -------------------------------------------
  * Saves the data from a properly formatted file (eg. "S.dat") into a vector of cpu scheduling options (eg. opts).
  * Each line of the file must contain the algorithm identifier, followed by an optional integer pair lead with a dash:
- * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR
+ * 		- The algorithm identifier must be one of the following: FCFS, PSJF, NPSJF, RR, RRP
  *		- If RR, the integer pair represents the Time Slice (S) and the Context Switching Time (T). (eg. S/T)
  *		- If RRP, the integer pair represents the Time Slice (S), the Priority Time Slice (PS) 
 		  and the Context Switching Time (T). (eg. S/PS/T) 	 
